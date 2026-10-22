@@ -66,12 +66,6 @@ Recommended for full coverage:
 | `subfinder` | `subdomains` | Passive subdomain enumeration |
 | `amass` | `subdomains` | Asset discovery |
 
-Automated install script (installs `nmap` plus the Python package and reports what is available):
-
-```bash
-./scripts/install.sh
-```
-
 On Kali:
 
 ```bash
@@ -390,6 +384,21 @@ oob_domain: null
 ```
 
 ## Docker
+
+The `Dockerfile` is not included in the clone. Create one in the project root if you want a container build:
+
+```dockerfile
+FROM python:3.12-slim
+RUN apt-get update && apt-get install -y --no-install-recommends nmap ca-certificates curl git \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY . /app
+RUN python -m pip install --no-cache-dir -e .
+ENTRYPOINT ["roastmywebsite"]
+CMD ["--help"]
+```
+
+Then build and run:
 
 ```bash
 docker build -t roastmywebsite .

@@ -13,31 +13,29 @@
 !.gitattributes
 !LICENSE
 !README.md
-!CHANGELOG.md
-!CONTRIBUTING.md
-!SECURITY.md
-!Makefile
-!Dockerfile
 !pyproject.toml
 !config.example.yaml
 
 # --- Repository directories that must stay -----------------------------------
-# Only source, tests, packaging and the install scripts are needed to run the tool.
-!scripts/
-!scripts/**
+# Only source, tests and packaging are needed to run the tool.
 !src/
 !src/**
 !tests/
 !tests/**
-!wordlists/
-!wordlists/.gitkeep
 
 # --- Not needed to run the tool (kept out of the clone) ----------------------
-# These still work on GitHub if you re-add them later, but they are ignored
-# so a fresh clone only contains what is required to run.
+# These are ignored so a fresh clone only contains what is required to run.
+# Re-add any of them with `git add -f <path>` if you want them back.
 .github/
 docs/
 examples/
+scripts/
+wordlists/
+Dockerfile
+Makefile
+CHANGELOG.md
+CONTRIBUTING.md
+SECURITY.md
 
 # --- Allowed individual files inside src -------------------------------------
 # (covered by `!src/**`, listed here only for clarity)
