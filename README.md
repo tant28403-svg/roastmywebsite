@@ -4,41 +4,119 @@ Roast My Website is an open-source Python tool for authorised website vulnerabil
 
 Use it only on systems you own or have explicit written permission to test. Unauthorised scanning may be illegal.
 
+## Requirements
+
+- Python 3.10 or later
+- Linux is the primary supported platform
+- Windows and macOS can run the tool for development, but Linux is recommended for production use and external scanner integrations
+- A virtual environment is recommended so the tool does not modify your system Python
+
 ## Download
-
-Python 3.10 or later is required. Linux is the primary supported platform.
-
-Windows support: The tool can run on Windows for development, but Linux is recommended for production use and external scanner integrations.
 
 ```bash
 git clone https://github.com/tant28403-svg/roastmywebsite.git
 cd roastmywebsite
 ```
 
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+On Windows:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
 Install the package and its dependencies:
+
+```bash
+pip install -e .
+```
+
+Add the development extra if you want to run tests and linting:
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-Optional dependencies (for browser-based checks):
+Optional dependencies for browser-based checks:
 
 ```bash
 pip install -e ".[browser]"
 playwright install chromium
 ```
 
-External tools (optional but recommended):
+## External tools
+
+External tools are optional but recommended. The built-in checks always run; modules that need a missing tool are skipped and the reason appears in the scan output.
+
+Recommended for full coverage:
+
+| Tool | Used by | Purpose |
+|---|---|---|
+| `nmap` | `ports` | Service and port discovery |
+| `naabu` | `ports` | Fast port enumerator |
+| `nuclei` | `nuclei` | Template-based vulnerability checks |
+| `ffuf` | `crawl` | Content and endpoint brute force |
+| `subfinder` | `subdomains` | Passive subdomain enumeration |
+| `amass` | `subdomains` | Asset discovery |
+
+Automated install script (installs `nmap` plus the Python package and reports what is available):
 
 ```bash
 ./scripts/install.sh
 ```
 
-The script installs `nmap`, installs the Python package, and reports which of the main external tools are available. Missing tools are optional; the related checks are skipped and a note is added to the scan output.
+On Kali:
+
+```bash
+sudo apt update
+sudo apt install -y naabu subfinder ffuf
+```
+
+Install with Go (newest versions):
+
+```bash
+sudo apt install -y golang-go libpcap-dev
+go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Check what is available at any time:
+
+```bash
+roastmywebsite doctor
+```
+
+`doctor` also works when tools are missing. It only reports what it finds.
 
 ## Use
 
-The default configuration works without any setup. Start with a quick environment check, then run recon or a scan:
+The default configuration works without any setup. Start with a quick environment check, then run recon or a scan.
+
+### The target format
+
+Pass the hostname or IP address only. Do not include a scheme or path.
+
+```bash
+# Correct
+roastmywebsite scan example.com
+roastmywebsite scan 10.0.0.5
+
+# Wrong
+roastmywebsite scan https://example.com/
+```
+
+### Recommended first run
+
+Start at a low request rate so you are not blocked:
 
 1. Check your environment:
 
@@ -55,7 +133,7 @@ roastmywebsite recon example.com
 3. Run a safe vulnerability scan:
 
 ```bash
-roastmywebsite scan example.com --mode safe --i-have-permission
+roastmywebsite scan example.com --mode safe --rate 2 --timeout 10
 ```
 
 4. Generate a report:
@@ -66,7 +144,41 @@ roastmywebsite report --format html
 
 Please use authorised targets only. The tool performs real network requests, and scanning systems without permission may be illegal.
 
-If the `roastmywebsite` command is not on your `PATH` after installation, use `python -m roastmywebsite` instead.
+### If the command is not found
+
+If `roastmywebsite` is not on your `PATH` after installation, use either of these:
+
+```bash
+python -m roastmywebsite doctor
+rmw doctor
+```
+
+The `rmw` command is a shorter alias for the same tool.
+
+## Verify your install
+
+Run this after installing or after adding external tools:
+
+```bash
+roastmywebsite doctor
+```
+
+Example output on a fully equipped machine:
+
+```text
+Roast My Website doctor
+python3: ok Python 3.12.3
+nmap: ok Nmap version 7.99 ( https://nmap.org )
+nuclei: ok Nuclei Engine Version: v3.11.1
+naabu: ok naabu version 2.6.1
+ffuf: ok Fuzz Faster U Fool - 2.1.0-dev
+subfinder: ok subfinder version 2.16.0
+amass: ok v4.x.x
+Config dir: /home/user/.config/roastmywebsite
+Database: /home/user/.local/share/roastmywebsite/roastmywebsite.db
+```
+
+Anything reported as `missing` is optional. The tool still runs.
 
 ## Commands
 
@@ -83,17 +195,21 @@ If the `roastmywebsite` command is not on your `PATH` after installation, use `p
 
 ## Modes
 
-- `recon`: passive and active reconnaissance only
-- `safe`: recon plus non-destructive vulnerability checks
-- `active`: safe plus injection, XSS, SSRF and IDOR probes
-- `aggressive`: active plus auth, browser, DOM XSS, OOB and DNS OOB checks
-- `roast`: full aggressive pipeline
+| Mode | Command | What runs |
+|---|---|---|
+| `recon` | `roastmywebsite recon example.com` | DNS, subdomains, certificate transparency, Wayback, tech, ports, crawl, JS, secrets |
+| `safe` | `roastmywebsite scan example.com --mode safe` | Recon plus headers, exposed files, TLS, CVEs, API, cloud, email security, templates |
+| `active` | `roastmywebsite scan example.com --mode active --i-have-permission` | Safe plus injection, XSS, SSRF, IDOR probes |
+| `aggressive` | `roastmywebsite scan example.com --mode aggressive --i-have-permission` | Active plus auth, browser, DOM XSS, HTTP OOB, DNS OOB |
+| `roast` | `roastmywebsite roast example.com --i-have-permission` | Full aggressive pipeline |
+
+For `active`, `aggressive`, and `roast`, the tool asks you to confirm you have permission unless you pass `--i-have-permission`.
 
 ```bash
 roastmywebsite scan example.com --mode safe
-roastmywebsite scan example.com --mode active
-roastmywebsite scan example.com --mode aggressive
-roastmywebsite roast example.com
+roastmywebsite scan example.com --mode active --i-have-permission
+roastmywebsite scan example.com --mode aggressive --i-have-permission
+roastmywebsite roast example.com --i-have-permission
 ```
 
 ## Modules
@@ -137,6 +253,31 @@ roastmywebsite roast example.com
 
 The `auth`, `browser`, `dom_xss`, `oob`, and `dns_oob` modules only run in `aggressive` or `roast` mode.
 
+## Scan options
+
+```bash
+roastmywebsite scan example.com \
+  --mode safe \
+  --rate 3 \
+  --concurrency 15 \
+  --timeout 12 \
+  --output example-results.json
+```
+
+| Option | Default | Notes |
+|---|---|---|
+| `--mode` | `safe` | `safe`, `active`, or `aggressive` |
+| `--rate` | `5.0` | Requests per second |
+| `--concurrency` | `20` | Concurrent requests |
+| `--timeout` | `15.0` | Request timeout in seconds |
+| `--proxy` | none | Optional HTTP proxy URL |
+| `--i-have-permission` | off | Acknowledge authorisation and skip the prompt |
+| `--output` | none | Write the scan result to a JSON file |
+
+`recon` and `roast` accept the same tuning options (`--rate`, `--concurrency`, `--timeout`, `--proxy`, `--output`).
+
+Run `roastmywebsite --help` or `roastmywebsite scan --help` to see every option.
+
 ## Templates
 
 The tool includes a YAML template engine for custom checks.
@@ -178,7 +319,20 @@ oob_dns_port: 5353
 
 ## Reporting
 
-Reports can be generated from saved scans:
+Reports are generated from scans already saved in the local database.
+
+```bash
+# Latest scan
+roastmywebsite report --format html
+
+# A specific scan
+roastmywebsite report --scan-id <scan-id> --format html
+
+# A specific output file
+roastmywebsite report --format html --output ~/report.html
+```
+
+Available formats:
 
 ```bash
 roastmywebsite report --format html
@@ -187,21 +341,32 @@ roastmywebsite report --format markdown
 roastmywebsite report --format sarif
 ```
 
-A sample HTML report is available at `examples/sample-report.html`.
+Default report location:
 
-## Common options
+```text
+~/.local/share/roastmywebsite/reports/
+```
 
-| Option | Default | Notes |
-|---|---|---|
-| `--rate` | `5.0` | Requests per second |
-| `--concurrency` | `20` | Concurrent requests |
-| `--timeout` | `15.0` | Request timeout in seconds |
-| `--proxy` | none | HTTP proxy URL |
-| `--i-have-permission` | off | Acknowledge authorisation |
-| `--output` | none | Write the scan result to a JSON file |
-| `--scan-id` | latest | Select a scan for the `report` command |
+The scan ID is printed at the end of every scan. A sample HTML report is available at `examples/sample-report.html`.
 
-Run `roastmywebsite --help` to see all commands and options.
+## Typical session
+
+```bash
+cd ~/roastmywebsite
+source .venv/bin/activate
+
+roastmywebsite doctor
+roastmywebsite recon example.com
+roastmywebsite scan example.com --mode safe --rate 2
+roastmywebsite report --format html
+```
+
+Then, only with authorisation:
+
+```bash
+roastmywebsite scan example.com --mode active --i-have-permission --rate 2
+roastmywebsite roast example.com --i-have-permission
+```
 
 ## Configuration
 
@@ -232,6 +397,71 @@ docker run --rm -it -v "$PWD/.docker-data:/data" -e XDG_DATA_HOME=/data roastmyw
 ```
 
 Scan results and generated reports are stored under `.docker-data/roastmywebsite/` on the host.
+
+## Troubleshooting
+
+### `roastmywebsite: command not found`
+
+The virtual environment is not active, or the script directory is not on `PATH`.
+
+```bash
+source .venv/bin/activate
+```
+
+Or run the module directly:
+
+```bash
+python -m roastmywebsite doctor
+rmw doctor
+```
+
+### `doctor` reports tools as `missing`
+
+That is expected if the tool is not installed. Install what you need:
+
+```bash
+sudo apt update
+sudo apt install -y naabu subfinder ffuf
+```
+
+Then run `roastmywebsite doctor` again.
+
+### A scan finds nothing
+
+A clean result only means the configured checks found nothing. Try a higher mode or slower rate:
+
+```bash
+roastmywebsite scan example.com --mode active --rate 2 --i-have-permission
+```
+
+Some checks also need external tools or a configured OOB domain to work.
+
+### Requests are timing out or being blocked
+
+Lower the rate and raise the timeout:
+
+```bash
+roastmywebsite scan example.com --mode safe --rate 1 --timeout 30
+```
+
+### Running behind a proxy
+
+Pass the proxy on the command line or set it in the config:
+
+```bash
+roastmywebsite scan example.com --proxy http://127.0.0.1:8080
+```
+
+Only HTTP traffic is proxied. DNS and TLS checks still run from your machine.
+
+### Where are my results stored?
+
+```text
+~/.local/share/roastmywebsite/roastmywebsite.db
+~/.local/share/roastmywebsite/reports/
+```
+
+The config lives at `~/.config/roastmywebsite/config.yaml`.
 
 ## Tests
 
