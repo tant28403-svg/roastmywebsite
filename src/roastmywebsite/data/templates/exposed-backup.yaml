@@ -1,0 +1,15 @@
+id: exposed-backup
+info:
+  name: Exposed Backup Archive
+  severity: high
+  description: A backup archive may be publicly accessible.
+  tags: [exposure, backup]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/backup.zip"
+      - "{{BaseURL}}/backup.tar.gz"
+      - "{{BaseURL}}/site.zip"
+    matchers:
+      - type: status
+        status: [200]

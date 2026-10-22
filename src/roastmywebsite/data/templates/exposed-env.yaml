@@ -1,0 +1,16 @@
+id: exposed-env-file
+info:
+  name: Exposed Environment File
+  severity: critical
+  description: An environment file is publicly accessible.
+  tags: [exposure, secrets]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env"
+    matchers:
+      - type: status
+        status: [200]
+      - type: regex
+        regex:
+          - "(?i)(password|secret|api_key|token)\\s*="

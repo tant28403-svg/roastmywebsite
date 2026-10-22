@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roast-my-website"
+version = "0.2.0"
+description = "Open-source website vulnerability and OSINT scanner"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Roast My Website Contributors" }]
+keywords = ["security", "osint", "vulnerability-scanner", "pentest"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+]
+dependencies = [
+  "typer[all]>=0.12.0",
+  "rich>=13.7.0",
+  "httpx>=0.27.0",
+  "dnspython>=2.6.0",
+  "beautifulsoup4>=4.12.0",
+  "lxml>=5.2.0",
+  "pydantic>=2.7.0",
+  "sqlalchemy>=2.0.0",
+  "jinja2>=3.1.0",
+  "cryptography>=42.0.0",
+  "tldextract>=5.1.0",
+  "pyyaml>=6.0.1",
+  "python-whois>=0.9.4",
+  "Pillow>=10.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+  "pytest-asyncio>=0.23.0",
+  "ruff>=0.5.0",
+  "mypy>=1.10.0",
+]
+browser = [
+  "playwright>=1.44.0",
+]
+
+[project.scripts]
+roastmywebsite = "roastmywebsite.cli:app"
+rmw = "roastmywebsite.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+roastmywebsite = ["reporting/templates/*", "templates/*", "data/*", "data/templates/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = [
+  "B008",
+  "BLE001",
+  "S110",
+  "S112",
+  "DTZ003",
+  "PLW1510",
+  "SIM117",
+  "FURB167",
+  "RUF059",
+  "RUF019",
+  "S110",
+  "PYI034",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

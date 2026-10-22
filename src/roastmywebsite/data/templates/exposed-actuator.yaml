@@ -1,0 +1,15 @@
+id: exposed-spring-actuator
+info:
+  name: Exposed Spring Boot Actuator
+  severity: high
+  description: Spring Boot actuator endpoints are publicly accessible.
+  tags: [exposure, spring]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/actuator"
+      - "{{BaseURL}}/actuator/env"
+      - "{{BaseURL}}/actuator/health"
+    matchers:
+      - type: status
+        status: [200]

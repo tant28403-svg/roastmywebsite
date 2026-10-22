@@ -1,0 +1,16 @@
+id: exposed-config
+info:
+  name: Exposed Configuration File
+  severity: high
+  description: A configuration file may be publicly accessible.
+  tags: [exposure, config]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/config.json"
+      - "{{BaseURL}}/config.yml"
+      - "{{BaseURL}}/settings.py"
+      - "{{BaseURL}}/application.properties"
+    matchers:
+      - type: status
+        status: [200]

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roast Report - {{ result.target }}</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f172a; color: #e2e8f0; }
+h1, h2 { color: #f8fafc; }
+.card { background: #1e293b; padding: 1rem; border-radius: 0.75rem; margin: 1rem 0; }
+.sev-critical { color: #ef4444; }
+.sev-high { color: #f97316; }
+.sev-medium { color: #eab308; }
+.sev-low { color: #3b82f6; }
+.sev-info { color: #94a3b8; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 0.5rem; border-bottom: 1px solid #334155; text-align: left; vertical-align: top; }
+.badge { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; }
+pre { white-space: pre-wrap; word-break: break-word; background: #0b1120; padding: 0.75rem; border-radius: 0.5rem; }
+</style>
+</head>
+<body>
+<h1>🔥 Roast Report: {{ result.target }}</h1>
+<p>Scan ID: <code>{{ result.id }}</code> | Mode: <code>{{ result.mode }}</code> | Started: {{ result.started_at.isoformat() }}</p>
+
+<div class="card">
+<h2>Summary</h2>
+<ul>
+{% for sev, count in result.counts.items() %}
+<li class="sev-{{ sev }}">{{ sev|title }}: {{ count }}</li>
+{% endfor %}
+</ul>
+<p><strong>Risk score:</strong> {{ risk_score }}/100</p>
+</div>
+
+<div class="card">
+<h2>Findings</h2>
+<table>
+<thead><tr><th>Severity</th><th>Title</th><th>Asset</th><th>Module</th></tr></thead>
+<tbody>
+{% for f in findings %}
+<tr>
+<td class="sev-{{ f.severity.value }}">{{ f.severity.value.upper() }}</td>
+<td>{{ f.title }}</td>
+<td><code>{{ f.asset }}</code></td>
+<td>{{ f.module }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+{% for f in findings %}
+<div class="card">
+<h3 class="sev-{{ f.severity.value }}">{{ f.title }}</h3>
+<p><strong>Severity:</strong> {{ f.severity.value.upper() }} | <strong>Confidence:</strong> {{ f.confidence }}</p>
+<p><strong>Asset:</strong> <code>{{ f.asset }}</code></p>
+<p>{{ f.description }}</p>
+{% if f.evidence.response or f.evidence.request %}
+<pre>{{ f.evidence.request or '' }}\n{{ f.evidence.response or '' }}</pre>
+{% endif %}
+<p><strong>Remediation:</strong> {{ f.remediation }}</p>
+{% if f.references %}
+<p><strong>References:</strong> {{ f.references|join(', ') }}</p>
+{% endif %}
+</div>
+{% endfor %}
+
+</body>
+</html>

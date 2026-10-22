@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+reports/
+.roastmywebsite/
+*.db
+wordlists/*.txt
+!wordlists/.gitkeep

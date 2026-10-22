@@ -1,0 +1,16 @@
+id: exposed-admin-panel
+info:
+  name: Exposed Admin Panel
+  severity: medium
+  description: A common admin panel path is accessible.
+  tags: [exposure, admin]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/admin"
+      - "{{BaseURL}}/administrator"
+      - "{{BaseURL}}/wp-admin"
+      - "{{BaseURL}}/manager/html"
+    matchers:
+      - type: status
+        status: [200]

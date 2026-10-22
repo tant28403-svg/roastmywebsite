@@ -1,0 +1,15 @@
+id: exposed-sql-dump
+info:
+  name: Exposed SQL Dump
+  severity: critical
+  description: A SQL dump may be publicly accessible.
+  tags: [exposure, database]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/dump.sql"
+      - "{{BaseURL}}/db.sql"
+      - "{{BaseURL}}/database.sql"
+    matchers:
+      - type: status
+        status: [200]

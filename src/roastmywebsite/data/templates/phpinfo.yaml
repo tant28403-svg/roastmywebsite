@@ -1,0 +1,15 @@
+id: exposed-phpinfo
+info:
+  name: Exposed phpinfo()
+  severity: medium
+  description: phpinfo() output is publicly accessible.
+  tags: [exposure, php]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/phpinfo.php"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["phpinfo()"]

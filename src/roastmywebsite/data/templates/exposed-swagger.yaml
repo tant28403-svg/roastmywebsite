@@ -1,0 +1,15 @@
+id: exposed-swagger
+info:
+  name: Exposed Swagger/OpenAPI
+  severity: low
+  description: Swagger or OpenAPI documentation is publicly accessible.
+  tags: [api, exposure]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/swagger.json"
+      - "{{BaseURL}}/openapi.json"
+      - "{{BaseURL}}/swagger-ui.html"
+    matchers:
+      - type: status
+        status: [200]

@@ -1,0 +1,14 @@
+id: exposed-server-status
+info:
+  name: Exposed Server Status
+  severity: medium
+  description: Apache or Nginx status page may be publicly accessible.
+  tags: [exposure, server]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/server-status"
+      - "{{BaseURL}}/nginx_status"
+    matchers:
+      - type: status
+        status: [200]
