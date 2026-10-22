@@ -347,7 +347,7 @@ Default report location:
 ~/.local/share/roastmywebsite/reports/
 ```
 
-The scan ID is printed at the end of every scan. A sample HTML report is available at `examples/sample-report.html`.
+The scan ID is printed at the end of every scan. Open the generated HTML report in a browser to review its findings, severity summary, evidence, and remediation guidance.
 
 ## Typical session
 

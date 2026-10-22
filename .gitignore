@@ -22,12 +22,7 @@
 !config.example.yaml
 
 # --- Repository directories that must stay -----------------------------------
-!.github/
-!.github/**
-!docs/
-!docs/**
-!examples/
-!examples/**
+# Only source, tests, packaging and the install scripts are needed to run the tool.
 !scripts/
 !scripts/**
 !src/
@@ -36,6 +31,13 @@
 !tests/**
 !wordlists/
 !wordlists/.gitkeep
+
+# --- Not needed to run the tool (kept out of the clone) ----------------------
+# These still work on GitHub if you re-add them later, but they are ignored
+# so a fresh clone only contains what is required to run.
+.github/
+docs/
+examples/
 
 # --- Allowed individual files inside src -------------------------------------
 # (covered by `!src/**`, listed here only for clarity)
