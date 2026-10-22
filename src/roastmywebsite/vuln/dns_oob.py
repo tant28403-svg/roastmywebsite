@@ -16,7 +16,7 @@ async def run(ctx) -> None:
     dns_server = DnsCallbackServer(port=dns_port)
     if not await http_server.start():
         return
-    dns_ok = await dns_server.start()
+    await dns_server.start()
     token = CallbackServer.new_token()
     callback_host = f"{token}.{domain}"
     params = ["url", "next", "redirect", "dest", "target", "uri", "callback", "dns"]
