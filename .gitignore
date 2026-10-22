@@ -1,8 +1,83 @@
-# Python bytecode, caches and test/lint artefacts
+# =============================================================================
+# Roast My Website - .gitignore
+#
+# Track only what is required to clone and run the tool. Everything created
+# locally by installation, running, testing, or scanning is ignored.
+# =============================================================================
+
+# --- Everything ignored by default -------------------------------------------
+# Track nothing unless it is explicitly allowed further down.
+# Directories and files that matter are re-included with `!` rules at the end.
+*
+!.gitignore
+!.gitattributes
+!LICENSE
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
+!SECURITY.md
+!Makefile
+!Dockerfile
+!pyproject.toml
+!config.example.yaml
+
+# --- Repository directories that must stay -----------------------------------
+!.github/
+!.github/**
+!docs/
+!docs/**
+!examples/
+!examples/**
+!scripts/
+!scripts/**
+!src/
+!src/**
+!tests/
+!tests/**
+!wordlists/
+!wordlists/.gitkeep
+
+# --- Allowed individual files inside src -------------------------------------
+# (covered by `!src/**`, listed here only for clarity)
+
+# =============================================================================
+# Local installation and Python artefacts
+# =============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.venv/
+venv/
+env/
+ENV/
+pythonenv*/
+.tox/
+.nox/
+.direnv/
+.envrc
+pip-wheel-metadata/
+share/python-wheels/
+site-packages/
+pip-log.txt
+
+# =============================================================================
+# Build, packaging and distribution output
+# =============================================================================
+build/
+dist/
+sdist/
+*.egg-info/
+*.egg
+.eggs/
+wheelhouse/
+*.whl
+*.tar.gz
+MANIFEST
+
+# =============================================================================
+# Test, lint, type-check and coverage output
+# =============================================================================
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -17,67 +92,36 @@ coverage.xml
 nosetests.xml
 junit*.xml
 htmlcov/
-*.orig.whl
 .benchmarks/
+prof/
+profile-*.txt
 
-# Virtual environments and tooling
-.venv/
-venv/
-env/
-ENV/
-.tox/
-.nox/
-.direnv/
-.envrc
-pythonenv*/
-
-# Packaging and build output
-build/
-dist/
-sdist/
-*.egg-info/
-*.egg
-.eggs/
-wheelhouse/
-*.whl
-*.tar.gz
-MANIFEST
-pip-wheel-metadata/
-share/python-wheels/
-
-# Installed package copies and vendored drops
-site-packages/
-pip-log.txt
-
-# Local runtime data, generated reports, scans and databases
-reports/
+# =============================================================================
+# Roast My Website runtime data
+# =============================================================================
 .roastmywebsite/
 .docker-data/
-*.db
-*.db-journal
-*.sqlite
-*.sqlite3
-*.log
-*.log.*
-*.prof
-*.pstats
+reports/
 scans/
 scan-*/
 results/
 output/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
 *.sarif
-*.rmw.json
 results*.json
 roast*.json
-*.html.j2.bak
 
+# =============================================================================
 # Local configuration, secrets and credentials
+# =============================================================================
 .env
 .env.*
 !.env.example
 config.yaml
 config.local.yaml
-!.config.example.yaml
 proxies.txt
 proxies.enc
 *.pem
@@ -98,31 +142,53 @@ serviceaccount*.json
 *secrets*.json
 *credentials*.yaml
 
+# =============================================================================
+# External tool output
+# =============================================================================
+nmap*.xml
+nmap*.txt
+nmap*.gnmap
+nmap*.nmap
+masscan*.json
+nuclei*.jsonl
+nuclei-results*
+subfinder*.txt
+naabu*.txt
+ffuf*.json
+amass*.txt
+
+# =============================================================================
 # Custom wordlists and downloaded template packs
+# =============================================================================
 wordlists/*
 !wordlists/.gitkeep
 nuclei-templates/
 custom-templates/
 templates-custom/
-nuclei-results*
 
-# External tool output
-nmap*.xml
-nmap*.txt
-nuclei*.jsonl
-subfinder*.txt
-naabu*.txt
-ffuf*.json
-amass*.txt
-*.gnmap
-*.nmap
-masscan*.json
+# =============================================================================
+# Logs and temporary files
+# =============================================================================
+*.log
+*.log.*
+*.pid
+*.seed
+*.pid.lock
+*.bak
+*.orig
+*.rej
+*.tmp
+*.temp
+*.swp
+*.swo
+*.patch
+*.diff
+*~
+*.stackdump
 
-# Coverage and profiling tool output
-prof/
-profile-*.txt
-
-# Editor and IDE files
+# =============================================================================
+# Editor, IDE, notebook and OS files
+# =============================================================================
 .vscode/
 .idea/
 *.iml
@@ -130,13 +196,7 @@ profile-*.txt
 *.user
 *.code-workspace
 *.sublime-*
-*.swp
-*.swo
-
-# Jupyter checkpoints
 .ipynb_checkpoints/
-
-# OS files
 .DS_Store
 .DS_Store?
 ._*
@@ -147,19 +207,7 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-# Temporary and patch files
-*.bak
-*.orig
-*.rej
-*.tmp
-*.temp
-*.swp
-*.patch
-*.diff
-*~
-*.stackdump
-
-# Logs from local tools
-*.pid
-*.seed
-*.pid.lock
+# =============================================================================
+# Re-include files that are required for the tool to work
+# =============================================================================
+!wordlists/.gitkeep
