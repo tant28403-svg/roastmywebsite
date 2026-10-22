@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from .config import CONFIG_DIR, REPORT_DIR, ScanSettings, load_config, save_config
+from .config import CONFIG_DIR, DB_PATH, REPORT_DIR, ScanSettings, load_config, save_config
 from .core import ScanEngine, get_scan, list_scans, save_scan
 from .core.http import HttpClient
 from .core.oob import CallbackServer, DnsCallbackServer
@@ -47,7 +47,7 @@ def doctor() -> None:
         state = "[green]ok[/green]" if status.available else "[red]missing[/red]"
         console.print(f"{tool}: {state} {status.version or ''}".strip())
     console.print(f"Config dir: {CONFIG_DIR}")
-    console.print(f"Database: {CONFIG_DIR / '..' / 'data' / 'roastmywebsite.db'}")
+    console.print(f"Database: {DB_PATH}")
 
 
 @app.command()
