@@ -9,7 +9,93 @@ Use it only on systems you own or have explicit written permission to test. Unau
 - Python 3.10 or later
 - Linux is the primary supported platform
 - Windows and macOS can run the tool for development, but Linux is recommended for production use and external scanner integrations
-- A virtual environment is recommended so the tool does not modify your system Python
+- A virtual environment so the tool does not modify your system Python
+
+## Install these first
+
+Install everything in this section before you install the tool itself. Missing prerequisites are the most common cause of errors on a fresh machine.
+
+### 1. Required (always install these)
+
+| Requirement | Why it is needed | How to install |
+|---|---|---|
+| Python 3.10 or later | The tool is written in Python | `sudo apt install python3 python3-pip python3-venv` |
+| pip | Installs the Python dependencies | `sudo apt install python3-pip` |
+| venv | Keeps dependencies isolated from your system | `sudo apt install python3-venv` |
+| git | Clones the repository | `sudo apt install git` |
+| Build tools | Some dependencies compile C extensions (`lxml`, `cryptography`) | `sudo apt install build-essential libxml2-dev libxslt1-dev libffi-dev libssl-dev` |
+
+One command installs all of the above on Debian, Ubuntu, or Kali:
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-pip python3-venv git \
+  build-essential libxml2-dev libxslt1-dev libffi-dev libssl-dev
+```
+
+Check they are present:
+
+```bash
+python3 --version
+pip3 --version
+git --version
+```
+
+If `python3 -m venv` fails with "ensurepip is not available", install the venv package for your version:
+
+```bash
+sudo apt install python3-venv
+```
+
+### 2. Optional (needed only for specific checks)
+
+The tool runs without these. Modules that need a missing tool are skipped automatically and the reason is printed during the scan.
+
+| Requirement | Enables | How to install |
+|---|---|---|
+| `nmap` | Deeper port and service discovery | `sudo apt install nmap` |
+| `naabu` | Fast port scanning | `sudo apt install naabu` |
+| `nuclei` | Template-based vulnerability checks | `sudo apt install nuclei` |
+| `ffuf` | Endpoint and content discovery | `sudo apt install ffuf` |
+| `subfinder` | Passive subdomain enumeration | `sudo apt install subfinder` |
+| `amass` | Extra asset discovery | `sudo apt install amass` |
+| Playwright + Chromium | `browser` and `dom_xss` checks | `pip install -e ".[browser]"` then `playwright install chromium` |
+| A domain you control | `dns_oob` out-of-band checks | Point DNS for the domain at your callback server |
+
+Install the optional scanners in one command:
+
+```bash
+sudo apt install -y nmap naabu nuclei ffuf subfinder amass
+```
+
+If a package is missing from your distribution's repositories, install it with Go instead:
+
+```bash
+sudo apt install -y golang-go libpcap-dev
+go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### 3. Notes that prevent common problems
+
+- **Do not run as root.** Use a normal user with a virtual environment. Some tools refuse to run as root.
+- **Do not use Python 3.13+ unless you are comfortable debugging.** The tool is tested on 3.10 to 3.12.
+- **Keep the virtual environment active** in every new terminal before running the tool.
+- **`dns_oob` needs a publicly reachable domain.** Without an `oob_domain` set in the config, that module skips itself.
+- **Browser checks need a Chromium download**, which is a separate step from installing the Python package.
+- **If a build fails** with missing headers, reinstall the build tools from step 1.
+
+### Verify the setup
+
+After installing the tool, confirm everything is detected:
+
+```bash
+roastmywebsite doctor
+```
+
+Anything reported as `missing` is optional. The tool still runs.
 
 ## Download
 
@@ -53,9 +139,9 @@ playwright install chromium
 
 ## External tools
 
-External tools are optional but recommended. The built-in checks always run; modules that need a missing tool are skipped and the reason appears in the scan output.
+External tools are optional. The built-in checks always run; modules that need a missing tool are skipped and the reason appears in the scan output.
 
-Recommended for full coverage:
+See [Install these first](#install-these-first) for installation commands. The table below shows which module each tool powers.
 
 | Tool | Used by | Purpose |
 |---|---|---|
@@ -65,31 +151,13 @@ Recommended for full coverage:
 | `ffuf` | `crawl` | Content and endpoint brute force |
 | `subfinder` | `subdomains` | Passive subdomain enumeration |
 | `amass` | `subdomains` | Asset discovery |
-
-On Kali:
-
-```bash
-sudo apt update
-sudo apt install -y naabu subfinder ffuf
-```
-
-Install with Go (newest versions):
-
-```bash
-sudo apt install -y golang-go libpcap-dev
-go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
-source ~/.bashrc
-```
+| Playwright | `browser`, `dom_xss` | Browser-rendered and DOM checks |
 
 Check what is available at any time:
 
 ```bash
 roastmywebsite doctor
 ```
-
-`doctor` also works when tools are missing. It only reports what it finds.
 
 ## Use
 
