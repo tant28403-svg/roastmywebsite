@@ -47,27 +47,6 @@ External tools (optional but recommended):
 
 This checks for `nmap`, `nuclei`, `naabu`, `ffuf`, `subfinder`, and `amass`.
 
-## Proxies
-
-If you have your own proxies, you can configure them in `~/.config/roastmywebsite/config.yaml`:
-
-```yaml
-proxy: http://user:pass@host:port
-rate_limit: 5.0
-```
-
-Or pass them on the command line:
-
-```bash
-roastmywebsite scan example.com --proxy http://1.2.3.4:8080
-```
-
-Only HTTP traffic can be proxied. DNS, TLS checks and raw socket operations are still performed from your own machine.
-
-## How the tool uses proxies
-
-Please note that this is not proxy chaining. In online proxy chaining, a request passes through every proxy in the chain before it reaches the target. This tool works differently: it uses the proxy you provide to send requests, so the target sees that proxy's address as the source, just as it would see a regular client. The proxy is applied per request through the HTTP client.
-
 ## Use
 
 There is nothing to configure - clone the repository and you are ready to run.
