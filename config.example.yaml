@@ -1,0 +1,35 @@
+# Example local configuration for Roast My Website.
+# Copy this file to the real config location and edit it:
+#   mkdir -p ~/.config/roastmywebsite
+#   cp config.example.yaml ~/.config/roastmywebsite/config.yaml
+# Or generate it with:
+#   roastmywebsite config --init
+
+rate_limit: 5.0
+max_requests: 5000
+timeout: 15.0
+concurrency: 20
+
+# Optional HTTP proxy. Leave as null for a direct connection.
+proxy: null
+
+verify_tls: true
+user_agent: "RoastMyWebsite/0.2 (+https://github.com/tant28403-svg/roastmywebsite)"
+
+# Scanning behaviour
+aggressive: false
+permission_acknowledged: false
+
+# Out-of-band (OOB) testing
+# Required for the dns_oob module. Point this at a domain you control
+# whose DNS and HTTP requests reach the callback server.
+oob_domain: null
+oob_http_port: 8989
+oob_dns_port: 5353
+
+# Scope rules. Leave empty to scope to the target host and its subdomains.
+scope_include: []
+scope_exclude: []
+
+# Optional API keys used by some enrichment checks.
+api_keys: {}

@@ -1,0 +1,8 @@
+# Custom wordlists go in this directory.
+#
+# Anything placed here is ignored by git, so your own lists stay local.
+#
+# Examples:
+#   wordlists/subdomains.txt    one subdomain name per line
+#   wordlists/paths.txt         one URL path per line
+#   wordlists/passwords.txt     one password per line

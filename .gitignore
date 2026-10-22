@@ -1,17 +1,24 @@
-# Python bytecode and caches
+# Python bytecode, caches and test/lint artefacts
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .pyre/
+.pytype/
 .hypothesis/
 .cache/
+.cache_*/
 .coverage
 .coverage.*
 coverage.xml
+nosetests.xml
+junit*.xml
 htmlcov/
+*.orig.whl
+.benchmarks/
 
 # Virtual environments and tooling
 .venv/
@@ -22,10 +29,12 @@ ENV/
 .nox/
 .direnv/
 .envrc
+pythonenv*/
 
 # Packaging and build output
 build/
 dist/
+sdist/
 *.egg-info/
 *.egg
 .eggs/
@@ -33,38 +42,85 @@ wheelhouse/
 *.whl
 *.tar.gz
 MANIFEST
+pip-wheel-metadata/
+share/python-wheels/
 
-# Local runtime data, generated reports and databases
+# Installed package copies and vendored drops
+site-packages/
+pip-log.txt
+
+# Local runtime data, generated reports, scans and databases
 reports/
 .roastmywebsite/
 .docker-data/
 *.db
+*.db-journal
 *.sqlite
 *.sqlite3
 *.log
+*.log.*
 *.prof
 *.pstats
 scans/
+scan-*/
 results/
 output/
+*.sarif
+*.rmw.json
+results*.json
+roast*.json
+*.html.j2.bak
 
 # Local configuration, secrets and credentials
 .env
 .env.*
 !.env.example
+config.yaml
 config.local.yaml
+!.config.example.yaml
 proxies.txt
 proxies.enc
 *.pem
 *.key
 *.p12
 *.pfx
+*.crt
+*.csr
+id_rsa*
+known_hosts
+.aws/
+.ssh/
+.netrc
+credentials*.json
+serviceaccount*.json
+*api-key*
+*apikey*
+*secrets*.json
+*credentials*.yaml
 
 # Custom wordlists and downloaded template packs
 wordlists/*
 !wordlists/.gitkeep
 nuclei-templates/
 custom-templates/
+templates-custom/
+nuclei-results*
+
+# External tool output
+nmap*.xml
+nmap*.txt
+nuclei*.jsonl
+subfinder*.txt
+naabu*.txt
+ffuf*.json
+amass*.txt
+*.gnmap
+*.nmap
+masscan*.json
+
+# Coverage and profiling tool output
+prof/
+profile-*.txt
 
 # Editor and IDE files
 .vscode/
@@ -73,15 +129,37 @@ custom-templates/
 *.suo
 *.user
 *.code-workspace
+*.sublime-*
+*.swp
+*.swo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
 
 # OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
 Desktop.ini
+$RECYCLE.BIN/
 
-# Temporary files
+# Temporary and patch files
 *.bak
 *.orig
 *.rej
 *.tmp
+*.temp
+*.swp
+*.patch
+*.diff
 *~
+*.stackdump
+
+# Logs from local tools
+*.pid
+*.seed
+*.pid.lock
