@@ -43,6 +43,10 @@ docker build -t roastmywebsite .
 docker run --rm -it -v "$PWD/reports:/app/reports" roastmywebsite doctor
 ```
 
+## Sample report
+
+See `examples/sample-report.html` for a preview of the generated HTML report.
+
 ## Documentation
 
 See `docs/` for architecture, modules, safety, and releasing guides.

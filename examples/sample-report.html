@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roast Report - example.com</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f172a; color: #e2e8f0; }
+h1, h2 { color: #f8fafc; }
+.card { background: #1e293b; padding: 1rem; border-radius: 0.75rem; margin: 1rem 0; }
+.sev-critical { color: #ef4444; }
+.sev-high { color: #f97316; }
+.sev-medium { color: #eab308; }
+.sev-low { color: #3b82f6; }
+.sev-info { color: #94a3b8; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 0.5rem; border-bottom: 1px solid #334155; text-align: left; vertical-align: top; }
+.badge { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; }
+pre { white-space: pre-wrap; word-break: break-word; background: #0b1120; padding: 0.75rem; border-radius: 0.5rem; }
+</style>
+</head>
+<body>
+<h1>🔥 Roast Report: example.com</h1>
+<p>Scan ID: <code>sample-scan-001</code> | Mode: <code>safe</code> | Started: 2026-10-22T19:23:55.328100+00:00</p>
+
+<div class="card">
+<h2>Summary</h2>
+<ul>
+
+<li class="sev-critical">Critical: 0</li>
+
+<li class="sev-high">High: 1</li>
+
+<li class="sev-medium">Medium: 2</li>
+
+<li class="sev-low">Low: 1</li>
+
+<li class="sev-info">Info: 1</li>
+
+</ul>
+<p><strong>Risk score:</strong> 35/100</p>
+</div>
+
+<div class="card">
+<h2>Findings</h2>
+<table>
+<thead><tr><th>Severity</th><th>Title</th><th>Asset</th><th>Module</th></tr></thead>
+<tbody>
+
+<tr>
+<td class="sev-high">HIGH</td>
+<td>Exposed .git Directory</td>
+<td><code>https://example.com/.git/HEAD</code></td>
+<td>exposed_files</td>
+</tr>
+
+<tr>
+<td class="sev-medium">MEDIUM</td>
+<td>Missing HSTS Header</td>
+<td><code>https://example.com</code></td>
+<td>headers</td>
+</tr>
+
+<tr>
+<td class="sev-medium">MEDIUM</td>
+<td>Missing Content-Security-Policy Header</td>
+<td><code>https://example.com</code></td>
+<td>headers</td>
+</tr>
+
+<tr>
+<td class="sev-low">LOW</td>
+<td>Software version disclosed via server</td>
+<td><code>https://example.com</code></td>
+<td>cve</td>
+</tr>
+
+<tr>
+<td class="sev-info">INFO</td>
+<td>Nuclei is not installed</td>
+<td><code>example.com</code></td>
+<td>nuclei</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+
+<div class="card">
+<h3 class="sev-high">Exposed .git Directory</h3>
+<p><strong>Severity:</strong> HIGH | <strong>Confidence:</strong> 0.95</p>
+<p><strong>Asset:</strong> <code>https://example.com/.git/HEAD</code></p>
+<p>The .git directory is publicly accessible.</p>
+
+<pre>\nref: refs/heads/main</pre>
+
+<p><strong>Remediation:</strong> Block access to .git in web server config.</p>
+
+<p><strong>References:</strong> https://owasp.org</p>
+
+</div>
+
+<div class="card">
+<h3 class="sev-medium">Missing HSTS Header</h3>
+<p><strong>Severity:</strong> MEDIUM | <strong>Confidence:</strong> 1.0</p>
+<p><strong>Asset:</strong> <code>https://example.com</code></p>
+<p>The response did not include the strict-transport-security header.</p>
+
+<p><strong>Remediation:</strong> Add HSTS header.</p>
+
+</div>
+
+<div class="card">
+<h3 class="sev-medium">Missing Content-Security-Policy Header</h3>
+<p><strong>Severity:</strong> MEDIUM | <strong>Confidence:</strong> 1.0</p>
+<p><strong>Asset:</strong> <code>https://example.com</code></p>
+<p>The response did not include the content-security-policy header.</p>
+
+<p><strong>Remediation:</strong> Add CSP header.</p>
+
+</div>
+
+<div class="card">
+<h3 class="sev-low">Software version disclosed via server</h3>
+<p><strong>Severity:</strong> LOW | <strong>Confidence:</strong> 0.9</p>
+<p><strong>Asset:</strong> <code>https://example.com</code></p>
+<p>server: nginx/1.18.0</p>
+
+<p><strong>Remediation:</strong> Hide version banners.</p>
+
+</div>
+
+<div class="card">
+<h3 class="sev-info">Nuclei is not installed</h3>
+<p><strong>Severity:</strong> INFO | <strong>Confidence:</strong> 1.0</p>
+<p><strong>Asset:</strong> <code>example.com</code></p>
+<p>Install nuclei to enable template-based checks.</p>
+
+<p><strong>Remediation:</strong> Install nuclei.</p>
+
+</div>
+
+
+</body>
+</html>
