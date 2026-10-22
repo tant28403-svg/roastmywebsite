@@ -1,19 +1,8 @@
 # Roast My Website
 
-Important
+Roast My Website is an open-source Python tool for authorised website vulnerability assessment and OSINT reconnaissance.
 
-Please read this entire README before running the tool. It explains the required setup, scan modes, modules, proxy options, reporting, and a few things that commonly cause confusion or problems (for example the difference between safe and aggressive mode and when "errors" in the output are expected). Taking a couple of minutes to read it will save you a lot of guesswork.
-
-Open Source Notice: This project is open source. The source code, documentation and README fully describe how every module, transport and check works. Anyone who clones this repository can read and understand the complete implementation. Please use it responsibly, and only against systems you own or have explicit written permission to test.
-
-Capability Notice: This is a moderate-intensity vulnerability and OSINT assessment tool. It is designed for authorised security testing, bug bounty reconnaissance, and educational purposes. It does not represent advanced or sophisticated exploitation capabilities. The tool measures how services behave under controlled checks and is intended for lab, authorised testing, and defensive environments only.
-
-⚠️ FOR EDUCATIONAL USE AND AUTHORISED SECURITY TESTING ONLY
-Please use this tool only against systems you own or have explicit written permission to test. Unauthorised testing is illegal in most jurisdictions.
-
-⚠️ The author cannot be held responsible for any misuse.
-
-A website vulnerability and OSINT scanner for authorised testing: it measures how your services behave under controlled checks.
+Use it only on systems you own or have explicit written permission to test. Unauthorised scanning may be illegal.
 
 ## Download
 
@@ -26,7 +15,7 @@ git clone https://github.com/tant28403-svg/roastmywebsite.git
 cd roastmywebsite
 ```
 
-If any dependencies are missing:
+Install the package and its dependencies:
 
 ```bash
 pip install -e ".[dev]"
@@ -45,11 +34,11 @@ External tools (optional but recommended):
 ./scripts/install.sh
 ```
 
-This checks for `nmap`, `nuclei`, `naabu`, `ffuf`, `subfinder`, and `amass`.
+The script installs `nmap`, installs the Python package, and reports which of the main external tools are available. Missing tools are optional; the related checks are skipped and a note is added to the scan output.
 
 ## Use
 
-There is nothing to configure - clone the repository and you are ready to run.
+The default configuration works without any setup. Start with a quick environment check, then run recon or a scan:
 
 1. Check your environment:
 
@@ -77,6 +66,21 @@ roastmywebsite report --format html
 
 Please use authorised targets only. The tool performs real network requests, and scanning systems without permission may be illegal.
 
+If the `roastmywebsite` command is not on your `PATH` after installation, use `python -m roastmywebsite` instead.
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `doctor` | Check Python, configuration paths, and external tools. |
+| `config` | Create or show the local configuration file. |
+| `recon` | Run reconnaissance modules only. |
+| `scan` | Run a scan in `safe`, `active`, or `aggressive` mode. |
+| `roast` | Run the full recon plus aggressive pipeline. |
+| `report` | Export the latest scan, or a specific `--scan-id`, as HTML, JSON, Markdown, or SARIF. |
+| `templates` | List, validate, update, or run YAML templates. |
+| `callback` | Start HTTP and DNS callback servers for out-of-band testing. |
+
 ## Modes
 
 - `recon`: passive and active reconnaissance only
@@ -94,38 +98,44 @@ roastmywebsite roast example.com
 
 ## Modules
 
-Reconnaissance:
+### Reconnaissance
 
-- `dns`
-- `subdomains`
-- `ct`
-- `wayback`
-- `tech`
-- `ports`
-- `crawl`
-- `js`
-- `secrets`
+| Module | What it does |
+|---|---|
+| `dns` | Collects DNS records and resolver information. |
+| `subdomains` | Enumerates subdomains through passive sources and DNS lookups. |
+| `ct` | Finds subdomains in certificate transparency logs. |
+| `wayback` | Pulls historical URLs from the Wayback Machine. |
+| `tech` | Fingerprints servers, frameworks, and libraries from responses. |
+| `ports` | Checks common TCP ports, using `nmap`/`naabu` when available. |
+| `crawl` | Crawls same-origin pages and discovers links and endpoints. |
+| `js` | Extracts endpoints and script references from JavaScript. |
+| `secrets` | Looks for API keys, tokens, and other secret patterns. |
 
-Vulnerability checks:
+### Vulnerability checks
 
-- `headers`
-- `exposed_files`
-- `tls`
-- `cve`
-- `nuclei`
-- `templates`
-- `injection`
-- `xss`
-- `ssrf`
-- `idor`
-- `api`
-- `cloud`
-- `email_security`
-- `auth` (aggressive)
-- `browser` (aggressive)
-- `dom_xss` (aggressive)
-- `oob` (aggressive)
-- `dns_oob` (aggressive)
+| Module | What it does |
+|---|---|
+| `headers` | Checks for missing or weak HTTP security headers. |
+| `exposed_files` | Probes for exposed configuration, backup, and debug files. |
+| `tls` | Checks certificate validity, expiry, and protocol settings. |
+| `cve` | Maps disclosed software versions to known CVEs. |
+| `nuclei` | Runs `nuclei` templates when the binary is installed. |
+| `templates` | Runs the built-in YAML checks. |
+| `injection` | Sends lightweight SQL and command injection probes. |
+| `xss` | Checks for reflected cross-site scripting. |
+| `ssrf` | Probes parameters for server-side request forgery. |
+| `idor` | Tests predictable object identifiers for access-control issues. |
+| `api` | Finds API documentation and checks common API exposure. |
+| `cloud` | Checks for publicly readable cloud storage buckets. |
+| `email_security` | Reviews SPF, DMARC, and related email controls. |
+| `auth` | Tests common endpoints for weak or default credentials. |
+| `browser` | Uses a headless browser for client-side checks. |
+| `dom_xss` | Tests for DOM-based cross-site scripting. |
+| `oob` | Listens for HTTP out-of-band callbacks. |
+| `dns_oob` | Listens for DNS out-of-band callbacks. |
+
+The `auth`, `browser`, `dom_xss`, `oob`, and `dns_oob` modules only run in `aggressive` or `roast` mode.
 
 ## Templates
 
@@ -133,7 +143,7 @@ The tool includes a YAML template engine for custom checks.
 
 ```bash
 roastmywebsite templates list
-roastmywebsite templates validate --path templates/exposed-git.yaml
+roastmywebsite templates validate --path ./my-template.yaml
 roastmywebsite templates run example.com --id exposed-git-directory
 roastmywebsite templates update
 ```
@@ -188,8 +198,8 @@ A sample HTML report is available at `examples/sample-report.html`.
 | `--timeout` | `15.0` | Request timeout in seconds |
 | `--proxy` | none | HTTP proxy URL |
 | `--i-have-permission` | off | Acknowledge authorisation |
-| `--output` | none | Write JSON report to path |
-| `--aggressive` | off | Enable aggressive checks |
+| `--output` | none | Write the scan result to a JSON file |
+| `--scan-id` | latest | Select a scan for the `report` command |
 
 Run `roastmywebsite --help` to see all commands and options.
 
@@ -218,8 +228,10 @@ oob_domain: null
 
 ```bash
 docker build -t roastmywebsite .
-docker run --rm -it -v "$PWD/reports:/app/reports" roastmywebsite doctor
+docker run --rm -it -v "$PWD/.docker-data:/data" -e XDG_DATA_HOME=/data roastmywebsite doctor
 ```
+
+Scan results and generated reports are stored under `.docker-data/roastmywebsite/` on the host.
 
 ## Tests
 
@@ -237,11 +249,11 @@ ruff check src tests
 
 ## Reporting issues
 
-If you run into a bug, or something in the tool does not behave the way this README describes, please feel free to report it. Issues are welcome at:
+Bug reports and feature requests are welcome at:
 
 https://github.com/tant28403-svg/roastmywebsite/issues
 
-A short description of what you ran, what you expected and what happened instead is usually enough to get started. Bug reports, feature requests and general feedback are all appreciated.
+Please include the command you ran, the target type (without any sensitive details), the expected result, and the actual output. Logs or tracebacks help narrow down problems faster.
 
 ## License
 

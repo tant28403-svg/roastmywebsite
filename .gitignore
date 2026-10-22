@@ -1,14 +1,87 @@
-.venv/
+# Python bytecode and caches
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-dist/
+.pyre/
+.hypothesis/
+.cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Virtual environments and tooling
+.venv/
+venv/
+env/
+ENV/
+.tox/
+.nox/
+.direnv/
+.envrc
+
+# Packaging and build output
 build/
+dist/
 *.egg-info/
+*.egg
+.eggs/
+wheelhouse/
+*.whl
+*.tar.gz
+MANIFEST
+
+# Local runtime data, generated reports and databases
 reports/
 .roastmywebsite/
+.docker-data/
 *.db
-wordlists/*.txt
+*.sqlite
+*.sqlite3
+*.log
+*.prof
+*.pstats
+scans/
+results/
+output/
+
+# Local configuration, secrets and credentials
+.env
+.env.*
+!.env.example
+config.local.yaml
+proxies.txt
+proxies.enc
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Custom wordlists and downloaded template packs
+wordlists/*
 !wordlists/.gitkeep
+nuclei-templates/
+custom-templates/
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.iml
+*.suo
+*.user
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.bak
+*.orig
+*.rej
+*.tmp
+*~
