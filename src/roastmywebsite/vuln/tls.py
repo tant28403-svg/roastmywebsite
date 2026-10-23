@@ -60,6 +60,13 @@ async def run(ctx) -> None:
         # It negotiates the best version the target offers and validates the
         # chain, which is what an outbound inspection should do.
         context = ssl.create_default_context()
+        # Enforce a modern minimum to satisfy CodeQL's py/insecure-protocol rule.
+        # Targets that only support legacy TLS are still detected by the explicit
+        # legacy probe below.
+        try:
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
+        except ValueError:  # pragma: no cover - platform without TLSv1_2
+            pass
         with socket.create_connection((host, port), timeout=ctx.settings.timeout) as sock:
             with context.wrap_socket(sock, server_hostname=host) as ssock:
                 cert = ssock.getpeercert()
