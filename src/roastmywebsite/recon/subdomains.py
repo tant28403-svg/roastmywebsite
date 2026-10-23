@@ -74,6 +74,17 @@ async def run(ctx) -> None:
                 line = line.strip()
                 if line:
                     found.add(line)
+                    ctx.add_asset(Asset(value=line, asset_type="subdomain", source="subfinder"))
+
+    # Optional external amass
+    if which("amass"):
+        rc, out, _ = run_tool(["amass", "enum", "-d", root, "-silent"], timeout=300)
+        if rc == 0:
+            for line in out.splitlines():
+                line = line.strip()
+                if line:
+                    found.add(line)
+                    ctx.add_asset(Asset(value=line, asset_type="subdomain", source="amass"))
 
     for sub in sorted(found):
         if sub == root:

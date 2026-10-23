@@ -70,3 +70,37 @@ async def run(ctx) -> None:
                         p = line.split(":", 1)[1].strip()
                         if p:
                             ctx.add_asset(Asset(value=p, asset_type="disallowed_path", source="crawl"))
+
+    # Optional ffuf content discovery
+    from ..core.tools import run_tool, which
+
+    if which("ffuf"):
+        import os
+        import tempfile
+        wordlist = None
+        # Try common wordlist locations
+        for wl in ["/usr/share/wordlists/dirb/common.txt", "/usr/share/seclists/Discovery/Web-Content/common.txt"]:
+            if os.path.isfile(wl):
+                wordlist = wl
+                break
+        if wordlist and ctx.can_request():
+            ctx.increment()
+            out_file = os.path.join(tempfile.gettempdir(), "ffuf_out.json")
+            rc, _, _ = run_tool(
+                ["ffuf", "-u", f"https://{base_host}/FUZZ", "-w", wordlist, "-o", out_file, "-of", "json", "-s"],
+                timeout=300,
+            )
+            if rc == 0 and os.path.isfile(out_file):
+                try:
+                    import asyncio as _asyncio
+                    import json
+                    def _read_json():
+                        with open(out_file) as f:
+                            return json.load(f)
+                    data = await _asyncio.to_thread(_read_json)
+                    for result in data.get("results", []):
+                        url = result.get("url", "")
+                        if url:
+                            ctx.add_asset(Asset(value=url, asset_type="discovered_path", source="ffuf", metadata={"status": result.get("status")}))
+                except Exception:
+                    pass
