@@ -255,17 +255,17 @@ The `auth`, `browser`, `dom_xss`, `oob`, and `dns_oob` modules only run in `aggr
 | `secrets` | 37 secret patterns (AWS, GCP, Azure, Stripe, GitHub, JWT, DB URIs, etc.) | 9 paths |
 | `nuclei` | Template-based checks with tag/severity filtering | Configurable |
 | `tls` | Weak protocol, weak cipher, certificate expiry, self-signed, PFS, SAN | Port 443 |
-| `headers` | 9 security headers + CORS + HSTS preload + server disclosure + cookie flags | — |
+| `headers` | 7 active security headers + CORS + HSTS preload + server version + cookie flags | — |
 | `cloud` | S3, Azure Blob, GCP Storage, Firebase, DigitalOcean Spaces | 28 bucket names |
 | `email_security` | SPF, DMARC, DKIM, MTA-STS, TLS-RPT, SPF/DMARC policy analysis | 12 DKIM selectors |
 | `auth` | 25 default credential pairs, JWT analysis (none alg, symmetric, sensitive data) | 13 endpoints |
-| `api` | 17 spec paths, 12 API bases, 13 endpoints, GraphQL introspection, CORS | — |
+| `api` | 20 spec paths, 12 API bases, 13 endpoints, OpenAPI parsing, GraphQL introspection, CORS | — |
 | `js` | Endpoint extraction, secret detection, source maps, framework detection | 20 scripts |
 | `crawl` | Link crawling, forms, comments, params, backup files, ffuf | 100 pages |
-| `tech` | 40+ signatures (CMS, frameworks, servers, CDN/WAF, analytics) | — |
+| `tech` | 40+ signatures for CMS, frameworks, servers, and CDN/WAF (verified: Next.js, React, Vercel) | — |
 | `dom_xss` | DOM sinks, template injection (SSTI), 15 params | 15 params × 5 templates |
-| `browser` | Login forms, console errors, mixed content, storage, cookies | — |
-| `dns` | 7 record types, reverse DNS, zone transfer, DNSSEC | — |
+| `browser` | Browser console errors | — |
+| `dns` | 7 record types, reverse DNS (PTR), zone transfer (AXFR) | — |
 | `tls` | Weak protocol, weak cipher, expiry, self-signed, SAN, PFS | Port 443 |
 
 ## Templates
