@@ -41,6 +41,18 @@ async def run(ctx) -> None:
             "-o", str(out_file),
             "-silent",
         ]
+        # Custom templates
+        if getattr(ctx.settings, "nuclei_templates", None):
+            args += ["-t", ctx.settings.nuclei_templates]
+        # Tag filtering
+        if getattr(ctx.settings, "nuclei_tags", None):
+            args += ["-tags", ctx.settings.nuclei_tags]
+        # Severity filtering
+        if getattr(ctx.settings, "nuclei_severity", None):
+            args += ["-severity", ctx.settings.nuclei_severity]
+        # Exclude tags
+        if getattr(ctx.settings, "nuclei_exclude_tags", None):
+            args += ["-exclude-tags", ctx.settings.nuclei_exclude_tags]
         if ctx.settings.rate_limit:
             args += ["-rl", str(int(ctx.settings.rate_limit))]
         rc, stdout, stderr = run_tool(args, timeout=300)

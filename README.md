@@ -161,6 +161,12 @@ For `active`, `aggressive`, and `roast`, the tool asks you to confirm you have p
 | `--proxy` | none | Optional HTTP proxy for HTTP traffic only |
 | `--i-have-permission` | off | Acknowledge authorisation and skip the prompt |
 | `--output` | none | Write the scan result to a JSON file |
+| `--ports-tool` | `auto` | Port scanner: `auto`, `nmap`, or `naabu` |
+| `--subdomain-tool` | `auto` | Subdomain tool: `auto`, `subfinder`, `amass`, or `both` |
+| `--nuclei-templates` | none | Custom nuclei template path or directory |
+| `--nuclei-tags` | none | Comma-separated tags (e.g. `cve,rce,sqli`) |
+| `--nuclei-severity` | none | Comma-separated severities (e.g. `critical,high`) |
+| `--nuclei-exclude-tags` | none | Comma-separated excluded tags |
 
 `recon` and `roast` accept the same tuning options. Run `roastmywebsite --help` to see everything.
 
@@ -253,6 +259,18 @@ scope_exclude: []
 
 # Optional API keys used by some enrichment checks.
 api_keys: {}
+
+# Tool selection (auto, nmap, naabu)
+ports_tool: auto
+
+# Subdomain tool selection (auto, subfinder, amass, both)
+subdomain_tool: auto
+
+# Nuclei configuration
+nuclei_templates: null
+nuclei_tags: null
+nuclei_severity: null
+nuclei_exclude_tags: null
 ```
 
 See `config.example.yaml` in this repo for the full list of options.

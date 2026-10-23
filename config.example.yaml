@@ -33,3 +33,15 @@ scope_exclude: []
 
 # Optional API keys used by some enrichment checks.
 api_keys: {}
+
+# Tool selection (auto, nmap, naabu)
+ports_tool: auto
+
+# Subdomain tool selection (auto, subfinder, amass, both)
+subdomain_tool: auto
+
+# Nuclei configuration
+nuclei_templates: null
+nuclei_tags: null
+nuclei_severity: null
+nuclei_exclude_tags: null

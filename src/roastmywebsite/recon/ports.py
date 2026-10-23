@@ -20,7 +20,36 @@ async def _tcp_connect(host: str, port: int, timeout: float) -> bool:
 
 async def run(ctx) -> None:
     host = ctx.target
-    # Prefer naabu
+    tool = getattr(ctx.settings, "ports_tool", "auto").lower()
+
+    # Forced nmap
+    if tool == "nmap":
+        if not which("nmap"):
+            return
+        rc, out, _ = run_tool(["nmap", "-Pn", "-sV", "-sC", "-p", ",".join(map(str, COMMON_PORTS)), host], timeout=300)
+        if rc == 0:
+            for line in out.splitlines():
+                if "/tcp" in line and "open" in line:
+                    port = line.split("/")[0].strip()
+                    if port.isdigit():
+                        ctx.add_asset(Asset(value=f"{host}:{port}", asset_type="open_port", source="nmap", metadata={"port": int(port)}))
+        return
+
+    # Forced naabu
+    if tool == "naabu":
+        if not which("naabu"):
+            return
+        rc, out, _ = run_tool(["naabu", "-host", host, "-silent", "-p", ",".join(map(str, COMMON_PORTS))], timeout=300)
+        if rc == 0:
+            for line in out.splitlines():
+                line = line.strip()
+                if ":" in line:
+                    _, port = line.rsplit(":", 1)
+                    if port.isdigit():
+                        ctx.add_asset(Asset(value=f"{host}:{port}", asset_type="open_port", source="naabu", metadata={"port": int(port)}))
+        return
+
+    # Auto mode: naabu → nmap → TCP connect
     if which("naabu"):
         rc, out, _ = run_tool(["naabu", "-host", host, "-silent", "-p", ",".join(map(str, COMMON_PORTS))], timeout=300)
         if rc == 0:
@@ -32,7 +61,6 @@ async def run(ctx) -> None:
                         ctx.add_asset(Asset(value=f"{host}:{port}", asset_type="open_port", source="naabu", metadata={"port": int(port)}))
             return
 
-    # Prefer nmap
     if which("nmap"):
         rc, out, _ = run_tool(["nmap", "-Pn", "-p", ",".join(map(str, COMMON_PORTS)), host], timeout=300)
         if rc == 0:

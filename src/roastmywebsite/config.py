@@ -42,6 +42,14 @@ class ScanSettings:
     scope_include: list[str] = field(default_factory=list)
     scope_exclude: list[str] = field(default_factory=list)
     api_keys: dict[str, str] = field(default_factory=dict)
+    # Tool selection
+    ports_tool: str = "auto"
+    subdomain_tool: str = "auto"
+    # Nuclei configuration
+    nuclei_templates: str | None = None
+    nuclei_tags: str | None = None
+    nuclei_severity: str | None = None
+    nuclei_exclude_tags: str | None = None
 
 
 def load_config(path: Path | None = None) -> ScanSettings:

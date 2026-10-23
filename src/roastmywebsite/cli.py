@@ -27,6 +27,12 @@ def _settings_from_options(
     timeout: float,
     aggressive: bool,
     permission: bool,
+    ports_tool: str = "auto",
+    subdomain_tool: str = "auto",
+    nuclei_templates: str | None = None,
+    nuclei_tags: str | None = None,
+    nuclei_severity: str | None = None,
+    nuclei_exclude_tags: str | None = None,
 ) -> ScanSettings:
     settings = load_config()
     settings.rate_limit = rate
@@ -34,6 +40,16 @@ def _settings_from_options(
     settings.proxy = proxy
     settings.timeout = timeout
     settings.aggressive = aggressive or settings.aggressive
+    settings.ports_tool = ports_tool
+    settings.subdomain_tool = subdomain_tool
+    if nuclei_templates:
+        settings.nuclei_templates = nuclei_templates
+    if nuclei_tags:
+        settings.nuclei_tags = nuclei_tags
+    if nuclei_severity:
+        settings.nuclei_severity = nuclei_severity
+    if nuclei_exclude_tags:
+        settings.nuclei_exclude_tags = nuclei_exclude_tags
     if permission:
         settings.permission_acknowledged = True
     return settings
@@ -80,11 +96,17 @@ def recon(
     rate: float = typer.Option(5.0, "--rate", help="Requests per second"),
     concurrency: int = typer.Option(20, "--concurrency", help="Concurrent requests"),
     proxy: str | None = typer.Option(None, "--proxy", help="HTTP proxy URL"),
-    timeout: float = typer.Option(15.0, "--timeout", help="Request timeout"),
+    timeout: float = typer.Option(10.0, "--timeout", help="Request timeout"),
+    ports_tool: str = typer.Option("auto", "--ports-tool", help="auto|nmap|naabu"),
+    subdomain_tool: str = typer.Option("auto", "--subdomain-tool", help="auto|subfinder|amass|both"),
+    nuclei_templates: str | None = typer.Option(None, "--nuclei-templates", help="Nuclei template path or directory"),
+    nuclei_tags: str | None = typer.Option(None, "--nuclei-tags", help="Comma-separated tags (e.g. cve,rce,sqli)"),
+    nuclei_severity: str | None = typer.Option(None, "--nuclei-severity", help="Comma-separated severities (e.g. critical,high)"),
+    nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
     output: Path | None = typer.Option(None, "--output", help="Write JSON report to path"),
 ) -> None:
     """Run reconnaissance only."""
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, False, False)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, False, False, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags)
     asyncio.run(_run_scan(target, "recon", settings, output))
 
 
@@ -95,13 +117,19 @@ def scan(
     rate: float = typer.Option(5.0, "--rate"),
     concurrency: int = typer.Option(20, "--concurrency"),
     proxy: str | None = typer.Option(None, "--proxy"),
-    timeout: float = typer.Option(15.0, "--timeout"),
+    timeout: float = typer.Option(10.0, "--timeout"),
+    ports_tool: str = typer.Option("auto", "--ports-tool", help="auto|nmap|naabu"),
+    subdomain_tool: str = typer.Option("auto", "--subdomain-tool", help="auto|subfinder|amass|both"),
+    nuclei_templates: str | None = typer.Option(None, "--nuclei-templates", help="Nuclei template path or directory"),
+    nuclei_tags: str | None = typer.Option(None, "--nuclei-tags", help="Comma-separated tags (e.g. cve,rce,sqli)"),
+    nuclei_severity: str | None = typer.Option(None, "--nuclei-severity", help="Comma-separated severities (e.g. critical,high)"),
+    nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
     i_have_permission: bool = typer.Option(False, "--i-have-permission", help="Acknowledge authorization"),
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
     """Run vulnerability scan."""
     aggressive = mode.lower() == "aggressive"
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, aggressive, i_have_permission)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, aggressive, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags)
     if mode.lower() in ("active", "aggressive") and not settings.permission_acknowledged:
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
@@ -115,12 +143,18 @@ def roast(
     rate: float = typer.Option(3.0, "--rate"),
     concurrency: int = typer.Option(10, "--concurrency"),
     proxy: str | None = typer.Option(None, "--proxy"),
-    timeout: float = typer.Option(15.0, "--timeout"),
+    timeout: float = typer.Option(10.0, "--timeout"),
+    ports_tool: str = typer.Option("auto", "--ports-tool", help="auto|nmap|naabu"),
+    subdomain_tool: str = typer.Option("auto", "--subdomain-tool", help="auto|subfinder|amass|both"),
+    nuclei_templates: str | None = typer.Option(None, "--nuclei-templates", help="Nuclei template path or directory"),
+    nuclei_tags: str | None = typer.Option(None, "--nuclei-tags", help="Comma-separated tags (e.g. cve,rce,sqli)"),
+    nuclei_severity: str | None = typer.Option(None, "--nuclei-severity", help="Comma-separated severities (e.g. critical,high)"),
+    nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
     i_have_permission: bool = typer.Option(False, "--i-have-permission"),
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
     """Run full recon + aggressive scan."""
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, True, i_have_permission)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, True, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags)
     if not settings.permission_acknowledged:
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()

@@ -64,10 +64,12 @@ async def run(ctx) -> None:
 
     await asyncio.gather(*(check(s) for s in COMMON_SUBS))
 
-    # Optional external subfinder
+    tool = getattr(ctx.settings, "subdomain_tool", "auto").lower()
+
     from ..core.tools import run_tool, which
 
-    if which("subfinder"):
+    # Forced or auto: subfinder
+    if tool in ("auto", "subfinder", "both") and which("subfinder"):
         rc, out, _ = run_tool(["subfinder", "-d", root, "-silent"], timeout=300)
         if rc == 0:
             for line in out.splitlines():
@@ -76,8 +78,8 @@ async def run(ctx) -> None:
                     found.add(line)
                     ctx.add_asset(Asset(value=line, asset_type="subdomain", source="subfinder"))
 
-    # Optional external amass
-    if which("amass"):
+    # Forced or auto: amass
+    if tool in ("auto", "amass", "both") and which("amass"):
         rc, out, _ = run_tool(["amass", "enum", "-d", root, "-silent"], timeout=300)
         if rc == 0:
             for line in out.splitlines():
