@@ -56,6 +56,34 @@ async def run(ctx) -> None:
             inputs = [i.get("name") for i in form.find_all("input") if i.get("name")]
             ctx.add_asset(Asset(value=action, asset_type="form", source="crawl", metadata={"method": method, "inputs": inputs}))
 
+        # Extract HTML comments
+        import re as _re
+        comments = _re.findall(r"<!--(.*?)-->", resp.text, _re.DOTALL)
+        for comment in comments:
+            comment = comment.strip()
+            if len(comment) > 10 and len(comment) < 500:
+                ctx.add_asset(Asset(value=comment[:200], asset_type="html_comment", source="crawl", metadata={"url": url}))
+
+        # Extract parameters from URLs
+        for a in soup.find_all("a", href=True):
+            link = urljoin(url, a["href"])
+            parsed = urlparse(link)
+            if parsed.query:
+                for param in parsed.query.split("&"):
+                    if "=" in param:
+                        key = param.split("=")[0]
+                        ctx.add_asset(Asset(value=key, asset_type="url_parameter", source="crawl", metadata={"url": link}))
+
+    # Backup file discovery
+    backup_exts = [".bak", ".old", ".swp", ".orig", ".save", "~", ".tmp"]
+    for ext in backup_exts:
+        if not ctx.can_request():
+            return
+        ctx.increment()
+        resp = await ctx.http.get(f"https://{base_host}/index.php{ext}", timeout=ctx.settings.timeout)
+        if resp.ok and len(resp.text) > 0:
+            ctx.add_asset(Asset(value=f"https://{base_host}/index.php{ext}", asset_type="backup_file", source="crawl"))
+
     # robots.txt and sitemap
     for path in ("/robots.txt", "/sitemap.xml"):
         if not ctx.can_request():

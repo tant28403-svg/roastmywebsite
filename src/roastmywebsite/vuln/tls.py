@@ -132,3 +132,70 @@ async def run(ctx) -> None:
                 ctx.add_finding(Finding(id="tls-expiring", title="TLS certificate expires within 30 days", severity=Severity.MEDIUM, confidence=1.0, asset=host, module="tls", remediation="Renew the certificate soon.", tags=["tls"]))
         except ValueError:
             pass
+
+    # Check certificate issuer (self-signed detection)
+    issuer = cert.get("issuer", ())
+    subject = cert.get("subject", ())
+    issuer_str = str(issuer)
+    subject_str = str(subject)
+    if issuer_str == subject_str:
+        ctx.add_finding(Finding(
+            id="tls-self-signed",
+            title="Self-signed certificate detected",
+            severity=Severity.MEDIUM,
+            confidence=0.9,
+            asset=host,
+            module="tls",
+            description="The certificate appears to be self-signed.",
+            remediation="Use a certificate from a trusted CA.",
+            tags=["tls", "certificate"],
+        ))
+
+    # Check for SAN (Subject Alternative Names)
+    san = cert.get("subjectAltName", ())
+    if not san:
+        ctx.add_finding(Finding(
+            id="tls-no-san",
+            title="Certificate missing Subject Alternative Names",
+            severity=Severity.LOW,
+            confidence=0.8,
+            asset=host,
+            module="tls",
+            description="The certificate does not include SAN entries.",
+            remediation="Add SAN entries for all domains served.",
+            tags=["tls", "certificate"],
+        ))
+
+    # Check certificate key size (weak keys)
+    # Note: ssl module doesn't expose key size directly, but we can check the cipher
+    cipher_name = str(cipher[0]) if cipher else ""
+    if "RSA" in cipher_name and "128" in cipher_name:
+        ctx.add_finding(Finding(
+            id="tls-weak-key",
+            title="Potentially weak RSA key size",
+            severity=Severity.MEDIUM,
+            confidence=0.6,
+            asset=host,
+            module="tls",
+            description="The negotiated cipher suggests a potentially weak key size.",
+            remediation="Use RSA keys of at least 2048 bits.",
+            tags=["tls", "certificate"],
+        ))
+
+    # Check for HSTS preload (via HTTP headers, not TLS)
+    # This is checked in headers.py but we note it here for completeness
+
+    # Perfect Forward Secrecy check
+    pfs_ciphers = ("ECDHE", "DHE", "ECDH")
+    if cipher and not any(pfs in str(cipher[0]) for pfs in pfs_ciphers):
+        ctx.add_finding(Finding(
+            id="tls-no-pfs",
+            title="TLS connection does not use Perfect Forward Secrecy",
+            severity=Severity.MEDIUM,
+            confidence=0.8,
+            asset=host,
+            module="tls",
+            description=f"Negotiated cipher ({cipher[0]}) does not provide forward secrecy.",
+            remediation="Configure server to prefer ECDHE/DHE cipher suites.",
+            tags=["tls", "pfs"],
+        ))
