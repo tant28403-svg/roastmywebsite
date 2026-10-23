@@ -13,8 +13,8 @@ class AsyncTokenBucket:
         self._lock = asyncio.Lock()
 
     async def acquire(self, amount: float = 1.0) -> None:
-        async with self._lock:
-            while True:
+        while True:
+            async with self._lock:
                 now = time.monotonic()
                 elapsed = now - self.updated
                 self.updated = now
@@ -23,4 +23,4 @@ class AsyncTokenBucket:
                     self.tokens -= amount
                     return
                 wait = (amount - self.tokens) / self.rate
-        await asyncio.sleep(wait)
+            await asyncio.sleep(wait)

@@ -99,7 +99,7 @@ class HttpClient:
             except Exception as exc:
                 last_error = str(exc)
                 if attempt < self.max_retries:
-                    await asyncio.sleep(0.5 * (attempt + 1))
+                    await asyncio.sleep(0.2 * (attempt + 1))
         return HttpResponse(url=url, status_code=0, headers={}, text="", elapsed=0.0, error=last_error)
 
     async def get(self, url: str, **kwargs: Any) -> HttpResponse:

@@ -78,7 +78,7 @@ async def run(ctx) -> None:
 
     # Optional external amass
     if which("amass"):
-        rc, out, _ = run_tool(["amass", "enum", "-d", root, "-silent"], timeout=300)
+        rc, out, _ = run_tool(["amass", "enum", "-d", root, "-silent"], timeout=120)
         if rc == 0:
             for line in out.splitlines():
                 line = line.strip()

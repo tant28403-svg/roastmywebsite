@@ -7,7 +7,7 @@
 
 rate_limit: 5.0
 max_requests: 5000
-timeout: 15.0
+timeout: 10.0
 concurrency: 20
 
 # Optional HTTP proxy. Leave as null for a direct connection.

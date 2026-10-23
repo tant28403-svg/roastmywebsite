@@ -29,7 +29,7 @@ REPORT_DIR = DATA_DIR / "reports"
 class ScanSettings:
     rate_limit: float = 5.0
     max_requests: int = 5000
-    timeout: float = 15.0
+    timeout: float = 10.0
     concurrency: int = 20
     proxy: str | None = None
     verify_tls: bool = True

@@ -155,7 +155,7 @@ For `active`, `aggressive`, and `roast`, the tool asks you to confirm you have p
 | `--mode` | `safe` | `safe`, `active`, or `aggressive` |
 | `--rate` | `5.0` | Requests per second |
 | `--concurrency` | `20` | Concurrent requests |
-| `--timeout` | `15.0` | Request timeout in seconds |
+| `--timeout` | `10.0` | Request timeout in seconds |
 | `--proxy` | none | Optional HTTP proxy for HTTP traffic only |
 | `--i-have-permission` | off | Acknowledge authorisation and skip the prompt |
 | `--output` | none | Write the scan result to a JSON file |
@@ -227,7 +227,7 @@ Stored at `~/.config/roastmywebsite/config.yaml`. Create it with `roastmywebsite
 ```yaml
 rate_limit: 5.0
 max_requests: 5000
-timeout: 15.0
+timeout: 10.0
 concurrency: 20
 
 # Optional HTTP proxy. Leave as null for a direct connection.

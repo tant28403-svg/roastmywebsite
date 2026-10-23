@@ -1,18 +1,29 @@
 from __future__ import annotations
 
+import asyncio
+
 from ..core.models import Finding, Severity
 
 
 async def run(ctx) -> None:
     # Lightweight IDOR probe: fetch sequential numeric object paths.
     paths = ["/api/users/1", "/api/users/2", "/user/1", "/user/2", "/account/1", "/account/2"]
-    responses = {}
-    for path in paths:
+
+    async def _fetch(path: str):
         if not ctx.can_request():
-            return
+            return path, None
         ctx.increment()
         resp = await ctx.http.get(f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
-        responses[path] = resp
+        return path, resp
+
+    results = await asyncio.gather(*[_fetch(p) for p in paths], return_exceptions=True)
+    responses = {}
+    for r in results:
+        if isinstance(r, Exception):
+            continue
+        path, resp = r
+        if resp is not None:
+            responses[path] = resp
 
     # Baseline: fetch a known-nonexistent path to detect soft 404s.
     baseline_status = 0
@@ -28,7 +39,6 @@ async def run(ctx) -> None:
     for p, r in responses.items():
         if r.status_code == 200:
             body_len = len(r.text or "")
-            # Skip if it looks like the same soft 404 page.
             if r.status_code == baseline_status and abs(body_len - baseline_len) < 50:
                 continue
             ok.append(p)

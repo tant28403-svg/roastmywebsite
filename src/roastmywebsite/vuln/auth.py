@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import asyncio
+
 from ..core.models import Finding, Severity
 
 DEFAULT_CREDS = [("admin", "admin"), ("admin", "password"), ("root", "root"), ("test", "test")]
 
 
 async def run(ctx) -> None:
-    # Check common login endpoints for default credentials (only if user enables aggressive)
     if not getattr(ctx.settings, "aggressive", False):
         return
     endpoints = ["/login", "/admin", "/wp-login.php", "/administrator"]
-    for endpoint in endpoints:
+
+    async def _check_endpoint(endpoint: str) -> None:
         # Baseline with wrong credentials to know what a failed login looks like.
         baseline_body = ""
         baseline_status = 0
@@ -29,7 +31,6 @@ async def run(ctx) -> None:
             ctx.increment()
             resp = await ctx.http.post(f"https://{ctx.target}{endpoint}", data={"username": user, "password": password, "user": user, "pass": password}, timeout=ctx.settings.timeout)
             body = (resp.text or "").lower()
-            # Only flag if the response differs meaningfully from the failed baseline.
             success = False
             if (
                 (resp.status_code in (302, 303) and baseline_status not in (302, 303))
@@ -49,3 +50,7 @@ async def run(ctx) -> None:
                     remediation="Change default credentials immediately.",
                     tags=["auth", "default-creds"],
                 ))
+                return
+
+    tasks = [_check_endpoint(ep) for ep in endpoints]
+    await asyncio.gather(*tasks, return_exceptions=True)
