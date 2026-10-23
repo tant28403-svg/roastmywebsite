@@ -64,6 +64,27 @@ async def run(ctx) -> None:
 
     await asyncio.gather(*(check(s) for s in COMMON_SUBS))
 
+    # Permutation-based discovery: try common prefixes/suffixes on found subdomains
+    permutations = ["dev", "staging", "test", "prod", "api", "v2", "v1", "new", "old", "backup"]
+    perm_targets = []
+    for sub in list(found)[:10]:  # Limit to first 10 found
+        for perm in permutations:
+            perm_targets.append(f"{perm}.{sub}")
+            perm_targets.append(f"{sub}.{perm}")
+    if perm_targets:
+        sem2 = asyncio.Semaphore(ctx.settings.concurrency)
+
+        async def check_perm(name: str) -> None:
+            if not ctx.can_request():
+                return
+            ctx.increment()
+            async with sem2:
+                if await _resolve(name, ctx.settings.timeout):
+                    found.add(name)
+                    ctx.add_asset(Asset(value=name, asset_type="subdomain", source="permutation"))
+
+        await asyncio.gather(*(check_perm(t) for t in perm_targets[:50]))
+
     tool = getattr(ctx.settings, "subdomain_tool", "auto").lower()
 
     from ..core.tools import run_tool, which

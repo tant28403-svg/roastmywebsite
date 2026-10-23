@@ -10,8 +10,11 @@ async def run(ctx) -> None:
         return
 
     payload = '"><script>window.__rmw_xss=true</script>'
-    marker = "rmwXSS123"
-    params = ["q", "search", "name", "redirect", "next", "return", "msg"]
+    # DOM sinks to test
+    params = ["q", "search", "name", "redirect", "next", "return", "msg", "callback", "cb", "jsonp", "cb", "handler", "cbk", "jsonpcallback", "cbfunc"]
+    # Template injection payloads
+    template_payloads = ["{{7*7}}", "${7*7}", "<%= 7*7 %>", "#{7*7}", "{{constructor.constructor('alert(1)')()}}"]
+
     for param in params:
         if not ctx.can_request():
             return
@@ -31,7 +34,7 @@ async def run(ctx) -> None:
                 await browser.close()
         except Exception:
             continue
-        if payload in content or marker in content:
+        if payload in content:
             ctx.add_finding(Finding(
                 id=f"dom-xss-reflected-{param}",
                 title=f"Potential DOM XSS via '{param}' parameter",
@@ -55,3 +58,34 @@ async def run(ctx) -> None:
                 remediation="Fix output encoding and avoid unsafe DOM sinks.",
                 tags=["xss", "dom", "execution"],
             ))
+
+    # Template injection testing
+    for param in params[:5]:
+        for tpl in template_payloads:
+            if not ctx.can_request():
+                return
+            ctx.increment()
+            url = f"https://{ctx.target}?{param}={tpl}"
+            try:
+                async with async_playwright() as p:
+                    browser = await p.chromium.launch(headless=True)
+                    page = await browser.new_page()
+                    await page.goto(url, timeout=int(ctx.settings.timeout * 1000))
+                    content = await page.content()
+                    await browser.close()
+            except Exception:
+                continue
+            # Check if template was evaluated (49 = 7*7)
+            if "49" in content and tpl not in content:
+                ctx.add_finding(Finding(
+                    id=f"template-injection-{param}",
+                    title=f"Potential template injection via '{param}' parameter",
+                    severity=Severity.HIGH,
+                    confidence=0.8,
+                    asset=url,
+                    module="dom_xss",
+                    description=f"Template expression {tpl} was evaluated to 49.",
+                    remediation="Avoid rendering user input in templates. Use sandboxed template engines.",
+                    tags=["ssti", "template-injection"],
+                ))
+                break

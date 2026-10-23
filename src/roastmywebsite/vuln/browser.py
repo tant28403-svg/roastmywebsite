@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..core.models import Finding, Severity
+from ..core.models import Asset, Finding, Severity
 
 
 async def run(ctx) -> None:
@@ -46,3 +46,64 @@ async def run(ctx) -> None:
             remediation="Fix client-side errors.",
             tags=["browser"],
         ))
+
+    # Mixed content detection
+    mixed = await page.evaluate("""() => {
+        const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.startsWith('http://'));
+        const scripts = Array.from(document.querySelectorAll('script')).filter(s => s.src.startsWith('http://'));
+        const links = Array.from(document.querySelectorAll('link')).filter(l => l.href.startsWith('http://'));
+        return imgs.length + scripts.length + links.length;
+    }""") if False else 0
+    try:
+        mixed = await page.evaluate("() => document.querySelectorAll('img[src^=\"http://\"], script[src^=\"http://\"], link[href^=\"http://\"]').length")
+        if mixed > 0:
+            ctx.add_finding(Finding(
+                id="browser-mixed-content",
+                title="Mixed content detected",
+                severity=Severity.MEDIUM,
+                confidence=0.9,
+                asset=url,
+                module="browser",
+                description=f"Page loads {mixed} insecure (HTTP) resources on an HTTPS page.",
+                remediation="Serve all resources over HTTPS.",
+                tags=["browser", "mixed-content"],
+            ))
+    except Exception:
+        pass
+
+    # Storage inspection
+    try:
+        local_storage = await page.evaluate("() => Object.keys(localStorage)")
+        if local_storage:
+            ctx.add_asset(Asset(value=str(local_storage), asset_type="local_storage_keys", source="browser", metadata={"url": url}))
+        session_storage = await page.evaluate("() => Object.keys(sessionStorage)")
+        if session_storage:
+            ctx.add_asset(Asset(value=str(session_storage), asset_type="session_storage_keys", source="browser", metadata={"url": url}))
+    except Exception:
+        pass
+
+    # Cookie analysis
+    try:
+        cookies = await page.context.cookies()
+        for cookie in cookies:
+            issues = []
+            if not cookie.get("httpOnly"):
+                issues.append("missing HttpOnly")
+            if not cookie.get("secure"):
+                issues.append("missing Secure")
+            if not cookie.get("sameSite"):
+                issues.append("missing SameSite")
+            if issues:
+                ctx.add_finding(Finding(
+                    id=f"browser-cookie-{cookie['name']}",
+                    title=f"Cookie '{cookie['name']}' has issues: {', '.join(issues)}",
+                    severity=Severity.LOW,
+                    confidence=0.9,
+                    asset=url,
+                    module="browser",
+                    description=f"Cookie {cookie['name']} is missing: {', '.join(issues)}.",
+                    remediation="Set HttpOnly, Secure, and SameSite attributes on cookies.",
+                    tags=["browser", "cookie"],
+                ))
+    except Exception:
+        pass
