@@ -1,5 +1,7 @@
 # Roast My Website
 
+**Important:** This tool only finds *potential* issues. All findings must be verified manually. False positives are possible.
+
 An open-source Python tool for authorised website vulnerability assessment and OSINT reconnaissance.
 
 Use it only on systems you own or have explicit written permission to test. Unauthorised scanning may be illegal.
@@ -101,18 +103,6 @@ If `roastmywebsite` is not found, the virtual environment is not active, or use 
 python -m roastmywebsite doctor
 rmw doctor
 ```
-
-## Important Notes
-
-- **Potential issues only.** Roast My Website reports *potential* vulnerabilities and exposures based on heuristics, patterns, and server responses. A finding is not proof of exploitability or that a file is actually exposed.
-- **Always verify findings.** Some servers (especially CMS platforms like Moodle or WordPress) use URL rewriting to return `200 OK` with an HTML page for non-existent files. This can create false positives.
-- **Quick verification:** For any exposed file finding, check it manually. For example:
-  ```bash
-  curl -I https://example.com/backup.sql
-  curl -s https://example.com/backup.sql | head -c 200
-  curl -s https://example.com/this-file-does-not-exist-12345.sql | head -c 80
-  ```
-  If the fake filename returns the same HTML page as the flagged one, it's a soft 404 and likely a false positive. Only act if you see the actual file contents (e.g. raw SQL, keys, or credentials).
 
 ## Use
 
