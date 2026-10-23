@@ -13,10 +13,9 @@
 
 An open-source Python tool for authorised website vulnerability assessment and OSINT reconnaissance.
 
-> [!CAUTION]
-> This tool is for **educational use and authorised resilience testing only**. Use it only against systems you own or have explicit written permission to test. Unauthorised testing is illegal in most jurisdictions.
->
-> **The author cannot be held responsible for any misuse.**
+Use it only on systems you own or have explicit written permission to test. Unauthorised scanning may be illegal.
+
+> **Disclaimer:** The author is not responsible or liable for any misuse, damage, or illegal activity caused by this tool. Users are solely responsible for ensuring they have proper authorization before scanning any system. This tool is provided "as is" without warranty of any kind.
 
 ## Requirements
 
