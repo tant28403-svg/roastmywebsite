@@ -50,10 +50,17 @@ async def run(ctx) -> None:
         # Skip if the response looks like a soft 404 (same as baseline).
         if baseline and resp.text[:200] == baseline:
             continue
+        # Skip if the response size is very close to the baseline (soft 404).
+        if baseline and abs(len(resp.text) - len(baseline)) < 100:
+            continue
         # Skip if the response is an HTML page (likely a soft 404 or CMS page).
         content_type = (resp.headers.get("content-type") or "").lower()
         is_html = "text/html" in content_type or resp.text.lstrip().startswith("<!DOCTYPE") or resp.text.lstrip().startswith("<html")
         if is_html and path not in ("/server-status",):
+            continue
+        # Skip if the body contains common 404 indicators.
+        body_lower = (resp.text or "").lower()
+        if any(indicator in body_lower for indicator in ("404", "not found", "page not found", "does not exist")):
             continue
         ctx.add_finding(Finding(
             id=f"exposed-{path.strip('/').replace('/', '-')}",

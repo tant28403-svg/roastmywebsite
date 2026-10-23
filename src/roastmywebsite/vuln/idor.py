@@ -13,8 +13,26 @@ async def run(ctx) -> None:
         ctx.increment()
         resp = await ctx.http.get(f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
         responses[path] = resp
-    # If multiple endpoints return 200 with similar sizes, flag for manual review.
-    ok = [p for p, r in responses.items() if r.status_code == 200]
+
+    # Baseline: fetch a known-nonexistent path to detect soft 404s.
+    baseline_status = 0
+    baseline_len = 0
+    if ctx.can_request():
+        ctx.increment()
+        baseline_resp = await ctx.http.get(f"https://{ctx.target}/rmw-nonexistent-probe-12345", timeout=ctx.settings.timeout)
+        baseline_status = baseline_resp.status_code
+        baseline_len = len(baseline_resp.text or "")
+
+    # Only flag endpoints whose response differs from the soft-404 baseline.
+    ok = []
+    for p, r in responses.items():
+        if r.status_code == 200:
+            body_len = len(r.text or "")
+            # Skip if it looks like the same soft 404 page.
+            if r.status_code == baseline_status and abs(body_len - baseline_len) < 50:
+                continue
+            ok.append(p)
+
     if len(ok) >= 2:
         ctx.add_finding(Finding(
             id="idor-candidate",
