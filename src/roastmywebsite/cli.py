@@ -103,11 +103,12 @@ def recon(
     nuclei_tags: str | None = typer.Option(None, "--nuclei-tags", help="Comma-separated tags (e.g. cve,rce,sqli)"),
     nuclei_severity: str | None = typer.Option(None, "--nuclei-severity", help="Comma-separated severities (e.g. critical,high)"),
     nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
+    modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
     output: Path | None = typer.Option(None, "--output", help="Write JSON report to path"),
 ) -> None:
     """Run reconnaissance only."""
     settings = _settings_from_options(rate, concurrency, proxy, timeout, False, False, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags)
-    asyncio.run(_run_scan(target, "recon", settings, output))
+    asyncio.run(_run_scan(target, "recon", settings, output, modules))
 
 
 @app.command()
@@ -124,6 +125,7 @@ def scan(
     nuclei_tags: str | None = typer.Option(None, "--nuclei-tags", help="Comma-separated tags (e.g. cve,rce,sqli)"),
     nuclei_severity: str | None = typer.Option(None, "--nuclei-severity", help="Comma-separated severities (e.g. critical,high)"),
     nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
+    modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
     i_have_permission: bool = typer.Option(False, "--i-have-permission", help="Acknowledge authorization"),
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
@@ -134,7 +136,7 @@ def scan(
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
         settings.permission_acknowledged = True
-    asyncio.run(_run_scan(target, mode, settings, output))
+    asyncio.run(_run_scan(target, mode, settings, output, modules))
 
 
 @app.command()
@@ -150,6 +152,7 @@ def roast(
     nuclei_tags: str | None = typer.Option(None, "--nuclei-tags", help="Comma-separated tags (e.g. cve,rce,sqli)"),
     nuclei_severity: str | None = typer.Option(None, "--nuclei-severity", help="Comma-separated severities (e.g. critical,high)"),
     nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
+    modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
     i_have_permission: bool = typer.Option(False, "--i-have-permission"),
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
@@ -159,7 +162,7 @@ def roast(
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
         settings.permission_acknowledged = True
-    asyncio.run(_run_scan(target, "roast", settings, output))
+    asyncio.run(_run_scan(target, "roast", settings, output, modules))
 
 
 @app.command()
@@ -279,11 +282,14 @@ def templates(
     console.print(f"Total: {len(found)}")
 
 
-async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path | None) -> None:
+async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path | None, modules: str | None = None) -> None:
 
     engine = ScanEngine()
     register_all(engine)
-    names = modules_for_mode(mode if mode != "roast" else "aggressive")
+    if modules:
+        names = [m.strip() for m in modules.split(",") if m.strip()]
+    else:
+        names = modules_for_mode(mode if mode != "roast" else "aggressive")
 
     console.print(f"[bold]🔥 Roasting {target}[/bold] (mode={mode}, modules={len(names)})")
 

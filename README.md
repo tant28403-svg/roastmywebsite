@@ -138,6 +138,12 @@ roastmywebsite scan example.com --mode safe --rate 2 --timeout 10
 roastmywebsite report --format html
 ```
 
+Run only specific modules (e.g. just injection, XSS, SSRF, and IDOR):
+
+```bash
+roastmywebsite scan example.com --modules injection,xss,ssrf,idor --mode active --i-have-permission
+```
+
 ## Modes
 
 | Mode | Command | What runs |
@@ -167,6 +173,7 @@ For `active`, `aggressive`, and `roast`, the tool asks you to confirm you have p
 | `--nuclei-tags` | none | Comma-separated tags (e.g. `cve,rce,sqli`) |
 | `--nuclei-severity` | none | Comma-separated severities (e.g. `critical,high`) |
 | `--nuclei-exclude-tags` | none | Comma-separated excluded tags |
+| `--modules` | none | Comma-separated module names to run (overrides mode) |
 
 `recon` and `roast` accept the same tuning options. Run `roastmywebsite --help` to see everything.
 
