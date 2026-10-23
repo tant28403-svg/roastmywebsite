@@ -13,10 +13,10 @@
 
 An open-source Python tool for authorised website vulnerability assessment and OSINT reconnaissance.
 
-> ⚠️ **FOR EDUCATIONAL USE AND AUTHORISED RESILIENCE TESTING ONLY**
-> Please use this tool only against systems you own or have explicit written permission to test. Unauthorised testing is illegal in most jurisdictions.
+> [!CAUTION]
+> This tool is for **educational use and authorised resilience testing only**. Use it only against systems you own or have explicit written permission to test. Unauthorised testing is illegal in most jurisdictions.
 >
-> ⚠️ **The author cannot be held responsible for any misuse.**
+> **The author cannot be held responsible for any misuse.**
 
 ## Requirements
 
