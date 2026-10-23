@@ -255,17 +255,17 @@ The `auth`, `browser`, `dom_xss`, `oob`, and `dns_oob` modules only run in `aggr
 | `secrets` | 37 secret patterns (AWS, GCP, Azure, Stripe, GitHub, JWT, DB URIs, etc.) | 9 paths |
 | `nuclei` | Template-based checks with tag/severity filtering | Configurable |
 | `tls` | Weak protocol, weak cipher, certificate expiry, self-signed, PFS, SAN | Port 443 |
-| `headers` | 7 active security headers + CORS + HSTS preload + server version + cookie flags | — |
+| `headers` | 7 active security headers + CORS + HSTS preload + server version + cookie flags | 1 root response (HTTPS, HTTP fallback) |
 | `cloud` | S3, Azure Blob, GCP Storage, Firebase, DigitalOcean Spaces | 28 bucket names |
 | `email_security` | SPF, DMARC, DKIM, MTA-STS, TLS-RPT, SPF/DMARC policy analysis | 12 DKIM selectors |
 | `auth` | 25 default credential pairs, JWT analysis (none alg, symmetric, sensitive data) | 13 endpoints |
-| `api` | 20 spec paths, 12 API bases, 13 endpoints, OpenAPI parsing, GraphQL introspection, CORS | — |
+| `api` | 20 spec paths, 12 API bases, 13 endpoints, OpenAPI parsing, GraphQL introspection, CORS | 45 paths (20 spec + 12 bases + 13 endpoints) + GraphQL POST + CORS |
 | `js` | Endpoint extraction, secret detection, source maps, framework detection | 20 scripts |
 | `crawl` | Link crawling, forms, comments, params, backup files, ffuf | 100 pages |
-| `tech` | 40+ signatures for CMS, frameworks, servers, and CDN/WAF (verified: Next.js, React, Vercel) | — |
+| `tech` | 40+ signatures for CMS, frameworks, servers, and CDN/WAF (verified: Next.js, React, Vercel) | 1 page (HTML + response headers) |
 | `dom_xss` | DOM sinks, template injection (SSTI), 15 params | 15 params × 5 templates |
-| `browser` | Browser console errors | — |
-| `dns` | 7 record types, reverse DNS (PTR), zone transfer (AXFR) | — |
+| `browser` | Browser console errors | 1 browser-rendered page |
+| `dns` | 7 record types, reverse DNS (PTR), zone transfer (AXFR) | 7 record types + PTR + AXFR + DNSKEY |
 | `tls` | Weak protocol, weak cipher, expiry, self-signed, SAN, PFS | Port 443 |
 
 ## Templates
