@@ -1,0 +1,19 @@
+id: exposed-ide-files
+info:
+  name: Exposed IDE/Editor Files
+  severity: low
+  description: IDE or editor configuration files are publicly accessible.
+  tags: [exposure, ide, information-disclosure]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.idea/workspace.xml"
+      - "{{BaseURL}}/.vscode/settings.json"
+      - "{{BaseURL}}/.vscode/launch.json"
+      - "{{BaseURL}}/.project"
+      - "{{BaseURL}}/.classpath"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["<?xml", "{", "project", "settings"]

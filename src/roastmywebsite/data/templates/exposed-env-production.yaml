@@ -1,0 +1,18 @@
+id: exposed-env-production
+info:
+  name: Exposed .env.production
+  severity: critical
+  description: Production environment file is publicly accessible.
+  tags: [exposure, env, credentials, critical]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env.production"
+      - "{{BaseURL}}/.env.prod"
+      - "{{BaseURL}}/.env.local"
+      - "{{BaseURL}}/.env.development"
+    matchers:
+      - type: status
+        status: [200]
+      - type: regex
+        regex: ["(DB_|DATABASE_|API_|SECRET_|PASSWORD|TOKEN)"]

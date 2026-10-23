@@ -1,0 +1,15 @@
+id: exposed-git-config
+info:
+  name: Exposed .git Config
+  severity: high
+  description: The .git/config file is publicly accessible, revealing repository details.
+  tags: [exposure, git, config]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.git/config"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["[core]", "[remote", "url ="]

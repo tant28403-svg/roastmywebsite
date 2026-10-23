@@ -1,0 +1,21 @@
+id: exposed-database-backup
+info:
+  name: Exposed Database Backup
+  severity: critical
+  description: Database backup file is publicly accessible.
+  tags: [exposure, database, backup, critical]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/backup.sql"
+      - "{{BaseURL}}/dump.sql"
+      - "{{BaseURL}}/db.sql"
+      - "{{BaseURL}}/database.sql"
+      - "{{BaseURL}}/data.sql"
+      - "{{BaseURL}}/backup.bak"
+      - "{{BaseURL}}/db.bak"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["INSERT INTO", "CREATE TABLE", "DROP TABLE", "MySQL dump"]

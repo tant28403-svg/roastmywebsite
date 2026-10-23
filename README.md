@@ -221,10 +221,23 @@ The `auth`, `browser`, `dom_xss`, `oob`, and `dns_oob` modules only run in `aggr
 | `injection` | Error-based, boolean-based blind, time-based blind, union-based | 30 params × 7+ payloads |
 | `xss` | Reflected XSS across HTML, attribute, JS, URL contexts + filter bypass | 25 params × 15 payloads |
 | `ssrf` | Multi-cloud metadata (AWS, GCP, Azure, Alibaba, DO) + internal services + protocol smuggling | 30 params × 16 targets |
-| `idor` | Sequential path probing + parameter tampering + GUID testing | 32 paths + 17 params × 5 values |
-| `exposed_files` | 18 common sensitive paths with soft 404 detection | 18 paths |
+| `idor` | Sequential path probing + parameter tampering | 32 paths + 17 params × 5 values |
+| `exposed_files` | 55 sensitive paths with soft 404 detection | 55 paths |
+| `secrets` | 37 secret patterns (AWS, GCP, Azure, Stripe, GitHub, JWT, DB URIs, etc.) | 9 paths |
 | `nuclei` | Template-based checks with tag/severity filtering | Configurable |
-| `tls` | Weak protocol, weak cipher, certificate expiry | Port 443 |
+| `tls` | Weak protocol, weak cipher, certificate expiry, self-signed, PFS, SAN | Port 443 |
+| `headers` | 9 security headers + CORS + HSTS preload + server disclosure + cookie flags | — |
+| `cloud` | S3, Azure Blob, GCP Storage, Firebase, DigitalOcean Spaces | 28 bucket names |
+| `email_security` | SPF, DMARC, DKIM, MTA-STS, TLS-RPT, SPF/DMARC policy analysis | 12 DKIM selectors |
+| `auth` | 25 default credential pairs, JWT analysis (none alg, symmetric, sensitive data) | 13 endpoints |
+| `api` | 17 spec paths, 12 API bases, 13 endpoints, GraphQL introspection, CORS | — |
+| `js` | Endpoint extraction, secret detection, source maps, framework detection | 20 scripts |
+| `crawl` | Link crawling, forms, comments, params, backup files, ffuf | 100 pages |
+| `tech` | 40+ signatures (CMS, frameworks, servers, CDN/WAF, analytics) | — |
+| `dom_xss` | DOM sinks, template injection (SSTI), 15 params | 15 params × 5 templates |
+| `browser` | Login forms, console errors, mixed content, storage, cookies | — |
+| `dns` | 7 record types, reverse DNS, zone transfer, DNSSEC | — |
+| `tls` | Weak protocol, weak cipher, expiry, self-signed, SAN, PFS | Port 443 |
 
 ## Templates
 

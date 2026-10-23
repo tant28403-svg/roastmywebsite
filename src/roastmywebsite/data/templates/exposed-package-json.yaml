@@ -1,0 +1,15 @@
+id: exposed-package-json
+info:
+  name: Exposed package.json
+  severity: low
+  description: The package.json file is publicly accessible, revealing dependencies.
+  tags: [exposure, dependencies, information-disclosure]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/package.json"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["\"name\"", "\"version\"", "\"dependencies\""]

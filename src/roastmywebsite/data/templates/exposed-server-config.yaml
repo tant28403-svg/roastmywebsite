@@ -1,0 +1,20 @@
+id: exposed-server-config
+info:
+  name: Exposed Server Configuration
+  severity: high
+  description: Server configuration files are publicly accessible.
+  tags: [exposure, server, config]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/server.xml"
+      - "{{BaseURL}}/httpd.conf"
+      - "{{BaseURL}}/apache2.conf"
+      - "{{BaseURL}}/my.cnf"
+      - "{{BaseURL}}/redis.conf"
+      - "{{BaseURL}}/mongod.conf"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["Listen", "ServerName", "port", "bind", "requirepass"]

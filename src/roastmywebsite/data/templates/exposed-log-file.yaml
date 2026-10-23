@@ -1,0 +1,19 @@
+id: exposed-log-file
+info:
+  name: Exposed Log File
+  severity: medium
+  description: Application or server log files are publicly accessible.
+  tags: [exposure, logs, information-disclosure]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/error.log"
+      - "{{BaseURL}}/access.log"
+      - "{{BaseURL}}/debug.log"
+      - "{{BaseURL}}/application.log"
+      - "{{BaseURL}}/laravel.log"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["error", "warning", "exception", "stack trace", "traceback"]

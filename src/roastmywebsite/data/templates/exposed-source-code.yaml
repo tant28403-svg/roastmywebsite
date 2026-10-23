@@ -1,0 +1,21 @@
+id: exposed-source-code
+info:
+  name: Exposed Source Code
+  severity: high
+  description: Application source code files are publicly accessible.
+  tags: [exposure, source-code, information-disclosure]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/index.php~"
+      - "{{BaseURL}}/index.php.bak"
+      - "{{BaseURL}}/index.php.old"
+      - "{{BaseURL}}/index.php.swp"
+      - "{{BaseURL}}/app.py"
+      - "{{BaseURL}}/main.py"
+      - "{{BaseURL}}/config.py"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["<?php", "def ", "import ", "function", "class "]

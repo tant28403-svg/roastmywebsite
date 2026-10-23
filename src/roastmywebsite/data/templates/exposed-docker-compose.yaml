@@ -1,0 +1,16 @@
+id: exposed-docker-compose
+info:
+  name: Exposed Docker Compose
+  severity: high
+  description: Docker compose file is publicly accessible.
+  tags: [exposure, docker, config]
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/docker-compose.yml"
+      - "{{BaseURL}}/docker-compose.yaml"
+    matchers:
+      - type: status
+        status: [200]
+      - type: word
+        words: ["services:", "image:", "ports:"]
