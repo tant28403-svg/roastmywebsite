@@ -117,6 +117,22 @@ python -m roastmywebsite doctor
 rmw doctor
 ```
 
+## Interactive mode
+
+Run the tool with no arguments to launch an interactive numbered menu:
+
+```bash
+roastmywebsite
+```
+
+Or explicitly:
+
+```bash
+roastmywebsite interactive
+```
+
+The menu lets you pick scan type, modules, port scanner, subdomain tool, nuclei filters, and rate limit by entering numbers. All existing CLI flags still work for scripting.
+
 ## Use
 
 Pass the hostname or IP address only. Do not include a scheme or path.

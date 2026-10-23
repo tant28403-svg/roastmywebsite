@@ -14,10 +14,17 @@ from .core import ScanEngine, get_scan, list_scans, save_scan
 from .core.http import HttpClient
 from .core.oob import CallbackServer, DnsCallbackServer
 from .core.tools import ToolStatus, tool_status
+from .interactive import run_interactive
 from .modules.registry import modules_for_mode, register_all
 
-app = typer.Typer(help="Roast My Website: OSINT and vulnerability scanner")
+app = typer.Typer(help="Roast My Website: OSINT and vulnerability scanner", invoke_without_command=True)
 console = Console()
+
+
+@app.callback()
+def main(ctx: typer.Context) -> None:
+    if ctx.invoked_subcommand is None:
+        run_interactive()
 
 
 def _settings_from_options(
@@ -53,6 +60,12 @@ def _settings_from_options(
     if permission:
         settings.permission_acknowledged = True
     return settings
+
+
+@app.command()
+def interactive() -> None:
+    """Launch interactive numbered menu mode."""
+    run_interactive()
 
 
 @app.command()
