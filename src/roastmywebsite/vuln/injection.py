@@ -55,19 +55,24 @@ PARAMS = [
 MIN_DIFF_BYTES = 100
 
 
-async def _get_baseline_timing(ctx, base: str, param: str) -> float:
-    """Measure normal response time with benign input (median of 3 requests)."""
+async def _get_baseline_timing(ctx, base: str, param: str) -> tuple[float, float]:
+    """Measure normal response time with benign input. Returns (median, stddev)."""
     times = []
-    for _ in range(3):
+    for _ in range(5):
         if not ctx.can_request():
-            return 0.0
+            return (0.0, 0.0)
         ctx.increment()
         start = time.monotonic()
         await ctx.http.get(base, params={param: "1"}, timeout=ctx.settings.timeout)
         elapsed = time.monotonic() - start
         times.append(elapsed)
     times.sort()
-    return times[1]  # median
+    median = times[2]  # median of 5
+    # Calculate standard deviation
+    mean = sum(times) / len(times)
+    variance = sum((t - mean) ** 2 for t in times) / len(times)
+    stddev = variance ** 0.5
+    return (median, stddev)
 
 
 async def _probe_error_based(ctx, base: str, param: str) -> bool:
@@ -169,9 +174,9 @@ async def _probe_boolean_based(ctx, base: str, param: str) -> bool:
 async def _probe_time_based(ctx, base: str, param: str) -> bool:
     """Time-based blind SQL injection detection with baseline timing."""
     # Establish baseline timing first
-    baseline = await _get_baseline_timing(ctx, base, param)
-    # Skip if server is already slow (unreliable timing)
-    if baseline > 2.0:
+    baseline, stddev = await _get_baseline_timing(ctx, base, param)
+    # Skip if server is already slow or timing is inconsistent (unreliable)
+    if baseline > 1.0 or stddev > 0.5:
         return False
 
     found = False
@@ -182,8 +187,9 @@ async def _probe_time_based(ctx, base: str, param: str) -> bool:
         start = time.monotonic()
         resp = await ctx.http.get(base, params={param: payload}, timeout=ctx.settings.timeout + delay + 2)
         elapsed = time.monotonic() - start
-        # Only flag if delay exceeds baseline + (delay - 0.5) with jitter tolerance
-        if elapsed >= baseline + delay - 0.5 and resp.status_code != 0:
+        # Only flag if delay exceeds baseline + delay with 2x stddev tolerance
+        threshold = baseline + delay + (2 * stddev)
+        if elapsed >= threshold and resp.status_code != 0:
             # Verify: send normal request to confirm server isn't just slow
             if not ctx.can_request():
                 return found
@@ -191,20 +197,29 @@ async def _probe_time_based(ctx, base: str, param: str) -> bool:
             start2 = time.monotonic()
             await ctx.http.get(base, params={param: "1"}, timeout=ctx.settings.timeout)
             elapsed2 = time.monotonic() - start2
-            if elapsed - elapsed2 >= delay - 1.0:
-                ctx.add_finding(Finding(
-                    id=f"sqli-time-{param}",
-                    title=f"Potential SQL injection (time-based blind) via '{param}'",
-                    severity=Severity.HIGH,
-                    confidence=0.75,
-                    asset=f"{base}?{param}={payload}",
-                    module="injection",
-                    description=f"Response delayed by {elapsed:.1f}s (baseline {baseline:.1f}s, expected ~{delay}s).",
-                    remediation="Use parameterized queries and input validation.",
-                    tags=["sqli", "injection", "blind", "time-based"],
-                ))
-                found = True
-                break
+            # Require the payload to be significantly slower than the verification
+            if elapsed - elapsed2 >= delay - 0.5:
+                # Second verification: send payload again
+                if not ctx.can_request():
+                    return found
+                ctx.increment()
+                start3 = time.monotonic()
+                await ctx.http.get(base, params={param: payload}, timeout=ctx.settings.timeout + delay + 2)
+                elapsed3 = time.monotonic() - start3
+                if elapsed3 >= threshold - 0.5:
+                    ctx.add_finding(Finding(
+                        id=f"sqli-time-{param}",
+                        title=f"Potential SQL injection (time-based blind) via '{param}'",
+                        severity=Severity.HIGH,
+                        confidence=0.75,
+                        asset=f"{base}?{param}={payload}",
+                        module="injection",
+                        description=f"Response delayed by {elapsed:.1f}s (baseline {baseline:.1f}s, expected ~{delay}s).",
+                        remediation="Use parameterized queries and input validation.",
+                        tags=["sqli", "injection", "blind", "time-based"],
+                    ))
+                    found = True
+                    break
     return found
 
 
