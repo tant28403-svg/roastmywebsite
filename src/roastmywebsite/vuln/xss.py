@@ -38,8 +38,6 @@ BENIGN = "rmw-baseline-check-12345"
 PARAMS = [
     "q", "search", "name", "redirect", "next", "return", "page", "id",
     "query", "keyword", "term", "text", "message", "comment", "title",
-    "url", "link", "path", "file", "data", "input", "value", "content",
-    "body", "subject", "description",
 ]
 
 

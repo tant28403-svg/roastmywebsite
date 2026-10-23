@@ -7,22 +7,16 @@ from ..core.models import Finding, Severity
 # Common IDOR endpoint patterns
 IDOR_PATHS = [
     "/api/users/1", "/api/users/2", "/api/v1/users/1", "/api/v1/users/2",
-    "/api/v2/users/1", "/api/v2/users/2", "/user/1", "/user/2",
-    "/users/1", "/users/2", "/account/1", "/account/2",
-    "/accounts/1", "/accounts/2", "/profile/1", "/profile/2",
-    "/order/1", "/order/2", "/orders/1", "/orders/2",
+    "/user/1", "/user/2", "/users/1", "/users/2",
+    "/account/1", "/account/2", "/accounts/1", "/accounts/2",
+    "/profile/1", "/profile/2", "/order/1", "/order/2",
     "/document/1", "/document/2", "/file/1", "/file/2",
-    "/invoice/1", "/invoice/2", "/ticket/1", "/ticket/2",
-    "/api/v1/accounts/1", "/api/v1/accounts/2",
-    "/api/v1/orders/1", "/api/v1/orders/2",
-    "/api/v1/profile/1", "/api/v1/profile/2",
 ]
 
 # Common IDOR parameters to test
 IDOR_PARAMS = [
     "id", "user_id", "account_id", "uid", "userid", "user", "account",
-    "profile_id", "order_id", "doc_id", "file_id", "invoice_id",
-    "ticket_id", "record_id", "item_id", "customer_id", "member_id",
+    "profile_id", "order_id", "doc_id",
 ]
 
 # Values to test for parameter tampering

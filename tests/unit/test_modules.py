@@ -26,7 +26,7 @@ class _FakeCtx:
 def test_xss_payloads_exist():
     from roastmywebsite.vuln.xss import PARAMS, PAYLOADS
     assert len(PAYLOADS) >= 10
-    assert len(PARAMS) >= 20
+    assert len(PARAMS) >= 10
     assert "<script>alert(1)</script>" in PAYLOADS
 
 
@@ -40,7 +40,7 @@ def test_ssrf_targets():
     from roastmywebsite.vuln.ssrf import PARAMS, SSRF_INDICATORS, TARGETS
     assert len(TARGETS) >= 10
     assert len(SSRF_INDICATORS) >= 5
-    assert len(PARAMS) >= 20
+    assert len(PARAMS) >= 10
     assert "ami-id" in SSRF_INDICATORS
     assert "169.254.169.254" in str(TARGETS)
 

@@ -51,8 +51,7 @@ ERROR_PAYLOADS = ["'", "\"", "1'", "1\"", "1'\"", "';", '";']
 PARAMS = [
     "id", "q", "search", "page", "user", "name", "email", "username",
     "password", "token", "category", "product", "item", "order", "sort",
-    "filter", "type", "action", "view", "lang", "redirect", "url", "path",
-    "file", "doc", "ref", "source", "target", "next", "return",
+    "filter", "type", "action", "view", "lang",
 ]
 
 # WAF bypass variants

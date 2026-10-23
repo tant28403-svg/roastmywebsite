@@ -46,13 +46,13 @@ async def run(ctx) -> None:
 
     # DNS zone transfer attempt (AXFR)
     try:
-        import dns.query
-        import dns.zone
+        import dns.query as _dns_query
+        import dns.zone as _dns_zone
         ns_records = await asyncio.to_thread(resolver.resolve, host, "NS")
         for ns in ns_records:
             ns_name = str(ns).rstrip(".")
             try:
-                zone = await asyncio.to_thread(dns.zone.from_xfr, dns.query.xfr(ns_name, host, timeout=ctx.settings.timeout))
+                zone = await asyncio.to_thread(_dns_zone.from_xfr, _dns_query.xfr(ns_name, host, timeout=ctx.settings.timeout))
                 if zone:
                     ctx.add_finding(Finding(
                         id="dns-zone-transfer",

