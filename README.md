@@ -75,6 +75,8 @@ If a package is missing from your repositories, install it with Go:
 sudo apt install -y golang-go libpcap-dev
 go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
 go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+go install -v github.com/owasp-amass/amass/v4/...@latest
 echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
 source ~/.bashrc
 ```
@@ -227,10 +229,28 @@ rate_limit: 5.0
 max_requests: 5000
 timeout: 15.0
 concurrency: 20
+
+# Optional HTTP proxy. Leave as null for a direct connection.
+proxy: null
+
 verify_tls: true
+user_agent: "RoastMyWebsite/0.2 (+https://github.com/tant28403-svg/roastmywebsite)"
+
+# Scanning behaviour
 aggressive: false
 permission_acknowledged: false
+
+# Out-of-band (OOB) testing
 oob_domain: null
+oob_http_port: 8989
+oob_dns_port: 5353
+
+# Scope rules. Leave empty to scope to the target host and its subdomains.
+scope_include: []
+scope_exclude: []
+
+# Optional API keys used by some enrichment checks.
+api_keys: {}
 ```
 
 See `config.example.yaml` in this repo for the full list of options.
