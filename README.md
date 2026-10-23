@@ -54,16 +54,18 @@ sudo apt install python3-venv
 
 The tool runs without these. Modules that need a missing tool are skipped, and the reason is printed during the scan.
 
-| Requirement | Enables |
-|---|---|
-| `nmap` | Deeper port and service discovery |
-| `naabu` | Fast port scanning |
-| `nuclei` | Template-based vulnerability checks |
-| `ffuf` | Endpoint and content discovery |
-| `subfinder` | Passive subdomain enumeration |
-| `amass` | Extra asset discovery |
-| Playwright + Chromium | `browser` and `dom_xss` checks |
-| A domain you control | `dns_oob` out-of-band checks |
+| Requirement | Enables | Typical duration |
+|---|---|---|
+| `nmap` | Deeper port and service discovery | Up to 5 minutes |
+| `naabu` | Fast port scanning | Up to 5 minutes |
+| `nuclei` | Template-based vulnerability checks | Up to 5 minutes |
+| `ffuf` | Endpoint and content discovery | Up to 5 minutes |
+| `subfinder` | Passive subdomain enumeration | Up to 5 minutes |
+| `amass` | Extra asset discovery | Up to 5 minutes |
+| Playwright + Chromium | `browser` and `dom_xss` checks | A few seconds |
+| A domain you control | `dns_oob` out-of-band checks | A few seconds |
+
+> **Note:** When external tools (nmap, naabu, nuclei, ffuf, subfinder, amass) are installed, the tool gives them up to 5 minutes each to complete deep scans for accurate results. This means a full aggressive scan can take 10-30 minutes depending on which tools are installed and how many are enabled. HTTP requests to the target are throttled at 5 requests per second by default. If the scan seems slow, this is expected — the tool prioritises thorough results over speed.
 
 ```bash
 sudo apt install -y nmap naabu nuclei ffuf subfinder amass
