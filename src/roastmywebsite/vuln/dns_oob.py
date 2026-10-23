@@ -13,7 +13,7 @@ async def run(ctx) -> None:
     http_port = getattr(ctx.settings, "oob_http_port", 8989)
     dns_port = getattr(ctx.settings, "oob_dns_port", 5353)
     http_server = CallbackServer(port=http_port)
-    dns_server = DnsCallbackServer(port=dns_port)
+    dns_server = DnsCallbackServer(port=dns_port, domain=domain)
     if not await http_server.start():
         return
     await dns_server.start()

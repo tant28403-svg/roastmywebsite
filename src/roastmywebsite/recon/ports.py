@@ -22,7 +22,7 @@ async def run(ctx) -> None:
     host = ctx.target
     # Prefer naabu
     if which("naabu"):
-        rc, out, _ = run_tool(["naabu", "-host", host, "-silent", "-p", ",".join(map(str, COMMON_PORTS))], timeout=120)
+        rc, out, _ = run_tool(["naabu", "-host", host, "-silent", "-p", ",".join(map(str, COMMON_PORTS))], timeout=300)
         if rc == 0:
             for line in out.splitlines():
                 line = line.strip()

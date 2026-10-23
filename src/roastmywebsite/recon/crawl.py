@@ -79,7 +79,7 @@ async def run(ctx) -> None:
         import tempfile
         wordlist = None
         # Try common wordlist locations
-        for wl in ["/usr/share/wordlists/dirb/common.txt", "/usr/share/seclists/Discovery/Web-Content/common.txt"]:
+        for wl in ["/usr/share/wordlists/dirb/common.txt", "/usr/share/seclists/Discovery/Web-Content/common.txt", "/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt", "/usr/share/ffuf/wordlist.txt"]:
             if os.path.isfile(wl):
                 wordlist = wl
                 break

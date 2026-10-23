@@ -68,7 +68,7 @@ async def run(ctx) -> None:
     from ..core.tools import run_tool, which
 
     if which("subfinder"):
-        rc, out, _ = run_tool(["subfinder", "-d", root, "-silent"], timeout=120)
+        rc, out, _ = run_tool(["subfinder", "-d", root, "-silent"], timeout=300)
         if rc == 0:
             for line in out.splitlines():
                 line = line.strip()
