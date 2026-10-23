@@ -34,7 +34,7 @@ async def run(ctx) -> None:
 
     # Prefer nmap
     if which("nmap"):
-        rc, out, _ = run_tool(["nmap", "-Pn", "-p", ",".join(map(str, COMMON_PORTS)), host], timeout=120)
+        rc, out, _ = run_tool(["nmap", "-Pn", "-p", ",".join(map(str, COMMON_PORTS)), host], timeout=300)
         if rc == 0:
             for line in out.splitlines():
                 if "/tcp" in line and "open" in line:

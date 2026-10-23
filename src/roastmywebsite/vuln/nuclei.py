@@ -43,7 +43,7 @@ async def run(ctx) -> None:
         ]
         if ctx.settings.rate_limit:
             args += ["-rl", str(int(ctx.settings.rate_limit))]
-        rc, stdout, stderr = run_tool(args, timeout=120)
+        rc, stdout, stderr = run_tool(args, timeout=300)
         text = ""
         if out_file.exists():
             text = out_file.read_text(encoding="utf-8", errors="ignore")
