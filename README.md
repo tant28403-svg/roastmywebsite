@@ -2,6 +2,14 @@
 
 > [!IMPORTANT]
 > This tool only finds *potential* issues. All findings must be verified manually. False positives are possible.
+>
+> To check if an exposed file is real or a false positive:
+> ```bash
+> curl -I https://target.com/backup.sql
+> curl -s https://target.com/backup.sql | head -c 200
+> curl -s https://target.com/this-file-does-not-exist-12345.sql | head -c 80
+> ```
+> If both the flagged file and the fake file return the same HTML page, it's likely a soft 404 (false positive). Only act if the flagged file returns actual file contents (e.g. raw SQL, keys, or credentials).
 
 An open-source Python tool for authorised website vulnerability assessment and OSINT reconnaissance.
 
