@@ -214,6 +214,8 @@ def run_interactive() -> None:
         print(f"Modules: {', '.join(selected_modules)}")
     print()
 
+    import asyncio
+
     from .cli import _run_scan
 
-    _run_scan(target, run_mode, settings, None, modules_str)
+    asyncio.run(_run_scan(target, run_mode, settings, None, modules_str))
