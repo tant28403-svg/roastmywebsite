@@ -194,8 +194,33 @@ For `active`, `aggressive`, and `roast`, the tool asks you to confirm you have p
 | `--nuclei-severity` | none | Comma-separated severities (e.g. `critical,high`) |
 | `--nuclei-exclude-tags` | none | Comma-separated excluded tags |
 | `--modules` | none | Comma-separated module names to run (overrides mode) |
+| `--stealth` | off | Use a browser User-Agent to blend in |
 
 `recon` and `roast` accept the same tuning options. Run `roastmywebsite --help` to see everything.
+
+## Stealth mode
+
+`--stealth` replaces the identifiable `RoastMyWebsite/0.3` User-Agent with a common desktop browser User-Agent. The User-Agent is chosen once per scan and stays the same for the whole run. Interactive mode enables stealth by default.
+
+```bash
+# CLI stealth mode
+roastmywebsite scan example.com --stealth
+
+# Interactive mode (stealth on by default)
+roastmywebsite
+```
+
+To use your own User-Agent instead, set it in `~/.config/roastmywebsite/config.yaml`:
+
+```yaml
+user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ..."
+```
+
+Important: stealth mode only changes the User-Agent header. It does not hide request paths, timing, or other scanning patterns, and WAFs can still detect scanning behaviour. For gentler scanning, combine it with a low rate:
+
+```bash
+roastmywebsite scan example.com --stealth --rate 1 --concurrency 5
+```
 
 ## Commands
 
@@ -294,7 +319,7 @@ concurrency: 20
 proxy: null
 
 verify_tls: true
-user_agent: "RoastMyWebsite/0.2 (+https://github.com/tant28403-svg/roastmywebsite)"
+user_agent: "RoastMyWebsite/0.3 (+https://github.com/tant28403-svg/roastmywebsite)"
 
 # Scanning behaviour
 aggressive: false

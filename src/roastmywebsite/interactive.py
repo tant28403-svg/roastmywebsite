@@ -177,6 +177,14 @@ def run_interactive() -> None:
     except ValueError:
         rate = 5.0
 
+    # Stealth mode (on by default in interactive mode)
+    print()
+    print("Stealth mode (hide scanner identity):")
+    print("  1. on (default)  - Use a browser User-Agent")
+    print("  2. off           - Identify as RoastMyWebsite")
+    stealth_choice = _prompt_choice("Select (1-2): ", 2, 1)
+    stealth = stealth_choice == 1
+
     # Permission check for active/aggressive modes
     aggressive = mode_name in ("active", "aggressive", "roast")
     permission = False
@@ -190,6 +198,7 @@ def run_interactive() -> None:
     # Build settings
     settings = load_config()
     settings.rate_limit = rate
+    settings.stealth = stealth or settings.stealth
     settings.aggressive = aggressive or settings.aggressive
     settings.permission_acknowledged = permission or settings.permission_acknowledged
     settings.ports_tool = ports_tool

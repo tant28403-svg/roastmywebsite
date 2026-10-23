@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import random
 from dataclasses import dataclass
 from typing import Any
 
@@ -30,8 +31,10 @@ class HttpClient:
         timeout: float = 15.0,
         proxy: str | None = None,
         verify_tls: bool = True,
-        user_agent: str = "RoastMyWebsite/0.1",
+        user_agent: str = "RoastMyWebsite/0.3 (+https://github.com/tant28403-svg/roastmywebsite)",
         max_retries: int = 2,
+        stealth: bool = False,
+        stealth_user_agents: list[str] | None = None,
     ):
         self.rate_limit = rate_limit
         self.timeout = timeout
@@ -39,6 +42,11 @@ class HttpClient:
         self.verify_tls = verify_tls
         self.user_agent = user_agent
         self.max_retries = max_retries
+        self.stealth = stealth
+        self.stealth_user_agents = stealth_user_agents or []
+        if self.stealth and self.stealth_user_agents:
+            # One browser identity per scan: a real browser never changes UA mid-session.
+            self.user_agent = random.choice(self.stealth_user_agents)
         self.bucket = AsyncTokenBucket(rate_limit)
         self._client: httpx.AsyncClient | None = None
 

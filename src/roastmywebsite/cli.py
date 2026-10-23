@@ -40,6 +40,7 @@ def _settings_from_options(
     nuclei_tags: str | None = None,
     nuclei_severity: str | None = None,
     nuclei_exclude_tags: str | None = None,
+    stealth: bool = False,
 ) -> ScanSettings:
     settings = load_config()
     settings.rate_limit = rate
@@ -49,6 +50,7 @@ def _settings_from_options(
     settings.aggressive = aggressive or settings.aggressive
     settings.ports_tool = ports_tool
     settings.subdomain_tool = subdomain_tool
+    settings.stealth = stealth or settings.stealth
     if nuclei_templates:
         settings.nuclei_templates = nuclei_templates
     if nuclei_tags:
@@ -117,10 +119,11 @@ def recon(
     nuclei_severity: str | None = typer.Option(None, "--nuclei-severity", help="Comma-separated severities (e.g. critical,high)"),
     nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
     modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
+    stealth: bool = typer.Option(False, "--stealth", help="Use browser User-Agent to blend in"),
     output: Path | None = typer.Option(None, "--output", help="Write JSON report to path"),
 ) -> None:
     """Run reconnaissance only."""
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, False, False, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, False, False, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth)
     asyncio.run(_run_scan(target, "recon", settings, output, modules))
 
 
@@ -140,11 +143,12 @@ def scan(
     nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
     modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
     i_have_permission: bool = typer.Option(False, "--i-have-permission", help="Acknowledge authorization"),
+    stealth: bool = typer.Option(False, "--stealth", help="Use browser User-Agent to blend in"),
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
     """Run vulnerability scan."""
     aggressive = mode.lower() == "aggressive"
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, aggressive, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, aggressive, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth)
     if mode.lower() in ("active", "aggressive") and not settings.permission_acknowledged:
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
@@ -167,10 +171,11 @@ def roast(
     nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
     modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
     i_have_permission: bool = typer.Option(False, "--i-have-permission"),
+    stealth: bool = typer.Option(False, "--stealth", help="Use browser User-Agent to blend in"),
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
     """Run full recon + aggressive scan."""
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, True, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, True, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth)
     if not settings.permission_acknowledged:
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
@@ -326,6 +331,8 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
             proxy=settings.proxy,
             verify_tls=settings.verify_tls,
             user_agent=settings.user_agent,
+            stealth=settings.stealth,
+            stealth_user_agents=settings.stealth_user_agents,
         )
         result = await engine.run(target, mode, settings, names, http_factory)
         progress.update(task, description="Done")
