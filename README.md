@@ -17,7 +17,7 @@ Use it only on systems you own or have explicit written permission to test. Unau
 
 > [!CAUTION]
 > ## **Disclaimer**
-> **This tool is for educational use and authorised resilience testing only.** The author is not responsible or liable for any misuse, damage, or illegal activity caused by this tool. Users are solely responsible for ensuring they have proper authorization before scanning any system. This tool is provided "as is" without warranty of any kind.
+> **This tool is for educational use and authorised security testing only.** The author is not responsible or liable for any misuse, damage, or illegal activity caused by this tool. Users are solely responsible for ensuring they have proper authorization before scanning any system. This tool is provided "as is" without warranty of any kind.
 
 ## Requirements
 
