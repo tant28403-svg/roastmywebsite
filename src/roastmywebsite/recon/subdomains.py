@@ -16,9 +16,12 @@ COMMON_SUBS = [
 ]
 
 
-async def _resolve(name: str) -> bool:
+async def _resolve(name: str, timeout: float = 5.0) -> bool:
     try:
-        await asyncio.to_thread(dns.resolver.resolve, name, "A")
+        resolver = dns.resolver.Resolver()
+        resolver.timeout = timeout
+        resolver.lifetime = timeout
+        await asyncio.to_thread(resolver.resolve, name, "A")
         return True
     except Exception:
         return False
@@ -56,7 +59,7 @@ async def run(ctx) -> None:
         ctx.increment()
         name = f"{sub}.{root}"
         async with semaphore:
-            if await _resolve(name):
+            if await _resolve(name, ctx.settings.timeout):
                 found.add(name)
 
     await asyncio.gather(*(check(s) for s in COMMON_SUBS))

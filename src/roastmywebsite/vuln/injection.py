@@ -18,9 +18,18 @@ async def run(ctx) -> None:
             if not ctx.can_request():
                 return
             ctx.increment()
+            baseline_resp = await ctx.http.get(base, params={param: "1"}, timeout=ctx.settings.timeout)
+            baseline_body = (baseline_resp.text or "").lower()
+            if not ctx.can_request():
+                return
+            ctx.increment()
             resp = await ctx.http.get(base, params={param: payload}, timeout=ctx.settings.timeout)
             body = (resp.text or "").lower()
-            if any(sig in body for sig in ERROR_SIGNATURES):
+            # Only flag if an error signature appears with the payload but NOT
+            # with the benign value (to avoid false positives from pages that
+            # always contain these words).
+            new_errors = [sig for sig in ERROR_SIGNATURES if sig in body and sig not in baseline_body]
+            if new_errors:
                 ctx.add_finding(Finding(
                     id=f"sqli-error-{param}",
                     title=f"Potential SQL injection via '{param}' parameter",
@@ -28,7 +37,7 @@ async def run(ctx) -> None:
                     confidence=0.7,
                     asset=f"{base}?{param}={payload}",
                     module="injection",
-                    description="Database error signature detected in response.",
+                    description=f"SQL error signature ({new_errors[0]}) detected in response.",
                     remediation="Use parameterized queries and input validation.",
                     tags=["sqli", "injection"],
                 ))

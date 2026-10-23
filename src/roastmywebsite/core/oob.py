@@ -51,9 +51,10 @@ class CallbackServer:
 class DnsCallbackServer:
     """Minimal UDP DNS server that records queried names."""
 
-    def __init__(self, host: str = "0.0.0.0", port: int = 5353):
+    def __init__(self, host: str = "0.0.0.0", port: int = 5353, domain: str | None = None):
         self.host = host
         self.port = port
+        self.domain = domain
         self.received: set[str] = set()
         self._transport: asyncio.DatagramTransport | None = None
 
@@ -80,6 +81,10 @@ class DnsCallbackServer:
                         labels.append(data[offset + 1:offset + 1 + length].decode("utf-8", "ignore"))
                         offset += 1 + length
                     qname = ".".join(labels)
+                    # Only record and respond if the query matches our OOB domain
+                    # (or if no domain filter is set).
+                    if self.outer.domain and not qname.endswith(self.outer.domain):
+                        return
                     if qname:
                         self.outer.received.add(qname)
                     # Build response: copy question, add A record 127.0.0.1

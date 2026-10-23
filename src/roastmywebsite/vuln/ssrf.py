@@ -19,16 +19,18 @@ async def run(ctx) -> None:
             ctx.increment()
             resp = await ctx.http.get(base, params={param: ssrf_target}, timeout=ctx.settings.timeout)
             body = (resp.text or "").lower()
-            if "ami-id" in body or "instance-id" in body or "root:x:" in body or "localhost" in body:
-                ctx.add_finding(Finding(
-                    id=f"ssrf-{param}",
-                    title=f"Potential SSRF via '{param}' parameter",
-                    severity=Severity.HIGH,
-                    confidence=0.7,
-                    asset=f"{base}?{param}={ssrf_target}",
-                    module="ssrf",
-                    description="Response suggests internal resource access.",
-                    remediation="Validate and allowlist outbound URLs; block internal ranges.",
-                    tags=["ssrf"],
-                ))
-                break
+                # Only flag on specific SSRF indicators, not generic keywords like "localhost"
+        # which appear on almost any page.
+        if "ami-id" in body or "instance-id" in body or "root:x:" in body or "metadata" in body:
+            ctx.add_finding(Finding(
+                id=f"ssrf-{param}",
+                title=f"Potential SSRF via '{param}' parameter",
+                severity=Severity.HIGH,
+                confidence=0.7,
+                asset=f"{base}?{param}={ssrf_target}",
+                module="ssrf",
+                description="Response suggests internal resource access.",
+                remediation="Validate and allowlist outbound URLs; block internal ranges.",
+                tags=["ssrf"],
+            ))
+            break

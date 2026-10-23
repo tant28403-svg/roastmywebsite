@@ -43,7 +43,13 @@ def tool_status(name: str) -> ToolStatus:
 
 def run_tool(args: list[str], timeout: int = 120) -> tuple[int, str, str]:
     try:
-        proc = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        proc = subprocess.run(
+            args,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            stdin=subprocess.DEVNULL,
+        )
         return proc.returncode, proc.stdout, proc.stderr
     except subprocess.TimeoutExpired:
         return 124, "", "timeout"

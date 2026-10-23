@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import shutil
 from pathlib import Path
 
 import typer
@@ -12,7 +13,7 @@ from .config import CONFIG_DIR, DB_PATH, REPORT_DIR, ScanSettings, load_config, 
 from .core import ScanEngine, get_scan, list_scans, save_scan
 from .core.http import HttpClient
 from .core.oob import CallbackServer, DnsCallbackServer
-from .core.tools import tool_status
+from .core.tools import ToolStatus, tool_status
 from .modules.registry import modules_for_mode, register_all
 
 app = typer.Typer(help="Roast My Website: OSINT and vulnerability scanner")
@@ -42,7 +43,15 @@ def _settings_from_options(
 def doctor() -> None:
     """Check runtime and external tooling."""
     console.print("[bold]Roast My Website doctor[/bold]")
-    for tool in ["python3", "nmap", "nuclei", "naabu", "ffuf", "subfinder", "amass"]:
+    import sys
+    py_status = tool_status("python3") if shutil.which("python3") else None
+    if py_status is None:
+        py_status = ToolStatus(name="python", available=True, version=sys.version.split()[0])
+    else:
+        py_status.version = py_status.version or sys.version.split()[0]
+    state = "[green]ok[/green]"
+    console.print(f"python: {state} {py_status.version or ''}".strip())
+    for tool in ["nmap", "nuclei", "naabu", "ffuf", "subfinder", "amass"]:
         status = tool_status(tool)
         state = "[green]ok[/green]" if status.available else "[red]missing[/red]"
         console.print(f"{tool}: {state} {status.version or ''}".strip())

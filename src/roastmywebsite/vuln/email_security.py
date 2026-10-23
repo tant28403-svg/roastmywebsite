@@ -27,7 +27,7 @@ async def run(ctx) -> None:
     if not dmarc:
         ctx.add_finding(Finding(id="missing-dmarc", title="Missing DMARC record", severity=Severity.MEDIUM, confidence=0.9, asset=domain, module="email_security", remediation="Publish a DMARC TXT record.", tags=["email", "dns"]))
     # DKIM common selector
-    for selector in ("default", "google", "selector1", "selector2"):
+    for selector in ("default", "google", "selector1", "selector2", "k1", "s1", "s2", "dkim", "mail", "smtp", "key1", "key2"):
         try:
             await asyncio.to_thread(dns.resolver.resolve, f"{selector}._domainkey.{domain}", "TXT")
             return
