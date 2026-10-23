@@ -214,6 +214,18 @@ Vulnerability checks: `headers`, `exposed_files`, `tls`, `cve`, `nuclei`, `templ
 
 The `auth`, `browser`, `dom_xss`, `oob`, and `dns_oob` modules only run in `aggressive` or `roast` mode.
 
+### Detection capabilities
+
+| Module | Techniques | Parameters/Paths tested |
+|---|---|---|
+| `injection` | Error-based, boolean-based blind, time-based blind, union-based | 30 params × 7+ payloads |
+| `xss` | Reflected XSS across HTML, attribute, JS, URL contexts + filter bypass | 25 params × 15 payloads |
+| `ssrf` | Multi-cloud metadata (AWS, GCP, Azure, Alibaba, DO) + internal services + protocol smuggling | 30 params × 16 targets |
+| `idor` | Sequential path probing + parameter tampering + GUID testing | 32 paths + 17 params × 5 values |
+| `exposed_files` | 18 common sensitive paths with soft 404 detection | 18 paths |
+| `nuclei` | Template-based checks with tag/severity filtering | Configurable |
+| `tls` | Weak protocol, weak cipher, certificate expiry | Port 443 |
+
 ## Templates
 
 Built-in YAML checks for exposed `.git`, `.env`, `phpinfo()`, admin panels, backup archives, SQL dumps, Swagger/OpenAPI, Spring Boot actuator, and server status pages.
