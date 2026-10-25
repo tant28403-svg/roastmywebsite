@@ -24,6 +24,40 @@ class ModuleContext:
     findings: list[Finding] = field(default_factory=list)
     request_count: int = 0
     waf_type: str | None = None
+    # Cross-cutting: request dedup and response fingerprinting
+    _seen_requests: set = field(default_factory=set)
+    _seen_response_hashes: set = field(default_factory=set)
+    _seen_findings: set = field(default_factory=set)
+
+    def is_duplicate_request(self, method: str, url: str, params: Any = None) -> bool:
+        import hashlib
+        key = f"{method}:{url}:{params}"
+        h = hashlib.md5(key.encode()).hexdigest()
+        if h in self._seen_requests:
+            return True
+        self._seen_requests.add(h)
+        return False
+
+    def is_duplicate_response(self, body: str) -> bool:
+        import hashlib
+        h = hashlib.md5((body or "").encode()).hexdigest()
+        if h in self._seen_response_hashes:
+            return True
+        self._seen_response_hashes.add(h)
+        return False
+
+    def is_duplicate_finding(self, module: str, asset: str, title: str) -> bool:
+        key = f"{module}:{asset}:{title}"
+        if key in self._seen_findings:
+            return True
+        self._seen_findings.add(key)
+        return False
+
+    def add_finding(self, finding: Finding) -> None:
+        if self.is_duplicate_finding(finding.module, finding.asset, finding.title):
+            return
+        self.findings.append(finding)
+        self.event_bus.emit("finding", finding)
 
     def add_asset(self, asset: Asset) -> None:
         self.assets.append(asset)

@@ -115,3 +115,34 @@ async def run(ctx) -> None:
 
     tasks = [_probe_param(param) for param in PARAMS]
     await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Header-based SSRF
+    await _probe_header_ssrf(ctx, base)
+
+
+async def _probe_header_ssrf(ctx, base):
+    headers_to_test = ["X-Forwarded-For", "X-Real-IP", "X-Forwarded-Host", "X-Original-URL", "X-Rewrite-URL"]
+    for header in headers_to_test:
+        if not ctx.can_request():
+            return
+        ctx.increment()
+        baseline_resp = await ctx.http.get(base, timeout=ctx.settings.timeout)
+        baseline_body = (baseline_resp.text or "").lower()
+        if not ctx.can_request():
+            return
+        ctx.increment()
+        resp = await ctx.http.get(base, headers={header: "127.0.0.1"}, timeout=ctx.settings.timeout)
+        body = (resp.text or "").lower()
+        new_indicators = [ind for ind in SSRF_INDICATORS if ind in body and ind not in baseline_body]
+        if new_indicators:
+            ctx.add_finding(Finding(
+                id=f"ssrf-header-{header.lower().replace('-', '_')}",
+                title=f"Potential SSRF via '{header}' header",
+                severity=Severity.HIGH,
+                confidence=0.7,
+                asset=base,
+                module="ssrf",
+                description=f"Response suggests internal resource access when injecting via {header}.",
+                remediation="Validate and allowlist outbound URLs. Do not trust client-supplied headers.",
+                tags=["ssrf", "header-based"],
+            ))

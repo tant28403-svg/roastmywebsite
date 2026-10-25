@@ -110,6 +110,50 @@ async def run(ctx) -> None:
                 ))
                 break
 
+    # API version difference check
+    for v1, v2 in [("/api/v1/", "/api/v2/"), ("/api/v1", "/api/v2")]:
+        if not ctx.can_request():
+            break
+        ctx.increment()
+        resp_v1 = await ctx.http.get(f"{base}{v1}users/1", timeout=ctx.settings.timeout)
+        if not ctx.can_request():
+            break
+        ctx.increment()
+        resp_v2 = await ctx.http.get(f"{base}{v2}users/1", timeout=ctx.settings.timeout)
+        # If v1 returns data but v2 requires auth, older version may lack auth checks
+        if resp_v1.status_code == 200 and resp_v2.status_code in (401, 403):
+            ctx.add_finding(Finding(
+                id="idor-api-version",
+                title="Potential IDOR: older API version lacks authorization",
+                severity=Severity.HIGH,
+                confidence=0.7,
+                asset=f"{base}{v1}users/1",
+                module="idor",
+                description=f"API {v1} returns data (200) while {v2} requires auth ({resp_v2.status_code}).",
+                remediation="Apply consistent authorization across all API versions.",
+                tags=["idor", "api-version", "authz"],
+            ))
+
+    # UUID/GUID enumeration check
+    uuid_params = ["id", "user_id", "uid", "uuid"]
+    for param in uuid_params:
+        if not ctx.can_request():
+            break
+        ctx.increment()
+        resp = await ctx.http.get(f"{base}/", params={param: "550e8400-e29b-41d4-a716-446655440000"}, timeout=ctx.settings.timeout)
+        if resp.status_code == 200:
+            ctx.add_finding(Finding(
+                id=f"idor-uuid-{param}",
+                title=f"Potential IDOR via UUID parameter '{param}'",
+                severity=Severity.LOW,
+                confidence=0.4,
+                asset=f"{base}/?{param}=550e8400-e29b-41d4-a716-446655440000",
+                module="idor",
+                description=f"Endpoint accepts UUID-formatted ID in '{param}'. May be enumerable if UUIDs are v1 (time-based).",
+                remediation="Use authorization checks regardless of ID format. Prefer UUID v4.",
+                tags=["idor", "uuid", "authz"],
+            ))
+
     # Phase 2: Parameter tampering
     for param in IDOR_PARAMS:
         if not ctx.can_request():

