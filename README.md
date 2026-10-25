@@ -222,6 +222,31 @@ Important: stealth mode only changes the User-Agent header. It does not hide req
 roastmywebsite scan example.com --stealth --rate 1 --concurrency 5
 ```
 
+## Hiding DNS & IP Leaks
+
+Stealth mode and the `--proxy` flag **do not** hide your DNS queries or source IP from the target. Many parts of this tool resolve domains through your system DNS and some modules connect directly to nameservers from your machine.
+
+### What leaks
+
+| Modules | Leak | Notes |
+| --- | --- | --- |
+| `dns` | Direct to target nameservers (AXFR, NS queries) | Biggest leak. Exposes your IP to the target's authoritative nameservers. Cannot be hidden by changing your system resolver alone. |
+| `subdomains` (with `subfinder`/`amass`) | DNS lookups from external tools | Tools use their own resolvers and make queries from your IP. |
+| `ports` (with `nmap`/`naabu`) | Reverse DNS / PTR lookups | `nmap` does PTR lookups by default; use `-n` where possible to disable. |
+| All modules | Recursive lookups to your ISP resolver | Resolving the target and discovered hosts goes through your system DNS (visible to your ISP). |
+| `dns_oob` | Queries to your OOB DNS domain | Intentional, but leaks your IP to your callback DNS provider. |
+
+### How to mitigate
+
+If you want to hide your DNS/IP from the target or reduce ISP visibility, you **must** tunnel traffic through an external anonymizing route:
+
+- **Use a VPN** - Easiest and most complete option. Routes all DNS and TCP traffic through the VPN provider, hiding your IP from targets and nameservers.
+- **Use proxychains with a SOCKS5 proxy (e.g. SSH `-D`)** - Run the tool through `proxychains4` with a SOCKS5 tunnel to a VPS. You must use `socks5h` (remote DNS) to avoid local DNS leaks. This works for most modules but can be finicky with direct NS queries and some external tools. Requires setup and will impact performance.
+
+**Important notes:**
+- The built-in `--proxy` option only proxies HTTP(S) traffic (via httpx). It does **not** tunnel direct DNS connections or most external tool traffic.
+- To minimize leaks without tunneling everything, skip `dns` if not needed, disable reverse DNS on port scans, prefer passive sources (`ct`, `wayback`), and host your OOB callback server on a remote VPS.
+
 ## Commands
 
 | Command | Purpose |
