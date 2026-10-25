@@ -120,6 +120,15 @@ class ScanEngine:
                 batch = module_names[i:i + batch_size]
                 await asyncio.gather(*[_run_module(name) for name in batch], return_exceptions=True)
             finished = datetime.utcnow()
+            # End-of-scan console summary so results aren't lost behind proxychains / scrolling
+            print("\n========== SCAN SUMMARY ==========")
+            print(f"Target: {target}  Mode: {mode}  Scan ID: {scan_id}")
+            print(f"Requests: {ctx.request_count}  Assets: {len(ctx.assets)}  Findings: {len(ctx.findings)}")
+            for a in ctx.assets:
+                print(f"  [ASSET] {a}")
+            for f in ctx.findings:
+                print(f"  [FINDING] {f.id} | {f.title} | severity={f.severity.value if hasattr(f.severity,'value') else f.severity} | asset={f.asset} | module={f.module}")
+            print("==================================\n")
             result = ScanResult(
                 id=scan_id,
                 target=target,
