@@ -98,6 +98,38 @@ async def _analyze_jwt(ctx, token: str) -> None:
                 tags=["jwt", "auth"],
             ))
 
+    # JWT secret brute force (HS256 only)
+    if alg.startswith("HS") and len(parts) == 3:
+        import hmac
+        import hashlib
+        import base64 as _b64
+        common_secrets = [
+            "secret", "password", "123456", "admin", "key", "token",
+            "jwt_secret", "jwt-secret", "supersecret", "changeme",
+            "default", "test", "debug", "dev", "development",
+            "production", "prod", "staging", "secret123", "password123",
+            "qwerty", "letmein", "welcome", "monkey", "dragon",
+        ]
+        # Reconstruct the signing input
+        signing_input = f"{parts[0]}.{parts[1]}"
+        original_sig = parts[2]
+        for secret in common_secrets:
+            computed = hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest()
+            computed_b64 = _b64.urlsafe_b64encode(computed).rstrip(b"=").decode()
+            if computed_b64 == original_sig:
+                ctx.add_finding(Finding(
+                    id="jwt-weak-secret",
+                    title="JWT signed with weak/guessable secret",
+                    severity=Severity.CRITICAL,
+                    confidence=1.0,
+                    asset=ctx.target,
+                    module="auth",
+                    description=f"JWT HS256 token signed with weak secret: '{secret}'.",
+                    remediation="Use a strong, random secret (32+ bytes) or switch to RS256.",
+                    tags=["jwt", "auth", "weak-secret"],
+                ))
+                break
+
 
 async def run(ctx) -> None:
     if not getattr(ctx.settings, "aggressive", False):

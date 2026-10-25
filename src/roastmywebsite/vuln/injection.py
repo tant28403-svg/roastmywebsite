@@ -411,3 +411,42 @@ async def run(ctx) -> None:
     nosql_params = ["username", "email", "user", "password", "name", "search", "q"]
     nosql_tasks = [_probe_nosql(ctx, base, param) for param in nosql_params if param in PARAMS]
     await asyncio.gather(*nosql_tasks, return_exceptions=True)
+
+    # Second-order SQLi: store payload in one param, check if it executes in another
+    await _probe_second_order(ctx, base)
+
+
+async def _probe_second_order(ctx, base: str) -> None:
+    """Second-order SQL injection: store payload, then trigger via another request."""
+    store_params = ["name", "username", "comment", "title", "message"]
+    trigger_paths = ["/profile", "/account", "/dashboard", "/view", "/search"]
+    payload = "' OR 1=1--"
+    for store_param in store_params:
+        if not ctx.can_request():
+            return
+        # Store the payload
+        ctx.increment()
+        store_resp = await ctx.http.post(f"{base}/", data={store_param: payload}, timeout=ctx.settings.timeout)
+        if store_resp.status_code not in (200, 302, 303):
+            continue
+        # Trigger: fetch a page that might use the stored value
+        for trigger_path in trigger_paths:
+            if not ctx.can_request():
+                return
+            ctx.increment()
+            trigger_resp = await ctx.http.get(f"{base}{trigger_path}", timeout=ctx.settings.timeout)
+            body = (trigger_resp.text or "").lower()
+            # Check for SQL error signatures in the triggered response
+            if any(sig in body for sig in ERROR_SIGNATURES):
+                ctx.add_finding(Finding(
+                    id=f"sqli-second-order-{store_param}",
+                    title=f"Potential second-order SQL injection via '{store_param}'",
+                    severity=Severity.HIGH,
+                    confidence=0.6,
+                    asset=f"{base}/",
+                    module="injection",
+                    description=f"SQL error detected after storing payload in '{store_param}' and visiting {trigger_path}.",
+                    remediation="Use parameterized queries. Sanitize stored input before use in queries.",
+                    tags=["sqli", "injection", "second-order"],
+                ))
+                return

@@ -87,8 +87,15 @@ async def _probe(ctx, base: str, param: str, ssrf_target: str) -> bool:
 async def run(ctx) -> None:
     base = f"https://{ctx.target}"
 
+    # Add OOB targets if callback server is configured
+    oob_targets = list(TARGETS)
+    oob_domain = getattr(ctx.settings, "oob_domain", None)
+    if oob_domain:
+        oob_targets.append(f"http://{oob_domain}/ssrf-probe")
+        oob_targets.append(f"https://{oob_domain}/ssrf-probe")
+
     async def _probe_param(param: str) -> None:
-        for ssrf_target in TARGETS:
+        for ssrf_target in oob_targets:
             if not ctx.can_request():
                 return
             found = await _probe(ctx, base, param, ssrf_target)

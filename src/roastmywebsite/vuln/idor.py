@@ -74,6 +74,42 @@ async def run(ctx) -> None:
             tags=["idor", "authz"],
         ))
 
+    # Phase 3: Mass assignment detection
+    mass_assignment_fields = ["role", "is_admin", "admin", "admin_flag", "is_staff", "staff",
+                              "permissions", "privilege", "user_type", "access_level",
+                              "verified", "is_verified", "active", "is_active"]
+    if ctx.can_request():
+        ctx.increment()
+        baseline_resp = await ctx.http.post(f"{base}/", data={"name": "test"}, timeout=ctx.settings.timeout)
+        baseline_body = (baseline_resp.text or "").lower()
+        baseline_status = baseline_resp.status_code
+        for field in mass_assignment_fields:
+            if not ctx.can_request():
+                break
+            ctx.increment()
+            resp = await ctx.http.post(f"{base}/", data={"name": "test", field: "1"}, timeout=ctx.settings.timeout)
+            body = (resp.text or "").lower()
+            # If the response changes when we add an admin field, it might be accepting it
+            if resp.status_code in (200, 201, 302) and body != baseline_body:
+                # Verify by sending without the field
+                if ctx.can_request():
+                    ctx.increment()
+                    verify_resp = await ctx.http.post(f"{base}/", data={"name": "test"}, timeout=ctx.settings.timeout)
+                    if verify_resp.text != baseline_resp.text:
+                        continue  # Non-deterministic, skip
+                ctx.add_finding(Finding(
+                    id=f"mass-assignment-{field}",
+                    title=f"Potential mass assignment via '{field}' field",
+                    severity=Severity.HIGH,
+                    confidence=0.6,
+                    asset=f"{base}/",
+                    module="idor",
+                    description=f"Adding '{field}=1' to POST request changed the response, suggesting mass assignment vulnerability.",
+                    remediation="Use allowlists for accepted fields. Ignore unexpected parameters.",
+                    tags=["idor", "mass-assignment", "authz"],
+                ))
+                break
+
     # Phase 2: Parameter tampering
     for param in IDOR_PARAMS:
         if not ctx.can_request():

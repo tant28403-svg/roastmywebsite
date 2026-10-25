@@ -97,6 +97,7 @@ class HttpClient:
         normalize_paths: bool = False,
         doh_resolver: str | None = None,
         tls_rotate: bool = False,
+        cache_enabled: bool = True,
     ):
         self.rate_limit = rate_limit
         self.timeout = timeout
@@ -135,6 +136,10 @@ class HttpClient:
         self.doh_resolver = doh_resolver
         self.tls_rotate = tls_rotate
         self._doh_cache: dict[str, str] = {}
+        # Response cache (method, url, params hash) -> HttpResponse
+        self._response_cache: dict[str, HttpResponse] = {}
+        self._cache_enabled: bool = cache_enabled
+        self._cache_max_size: int = 256
 
     async def __aenter__(self) -> HttpClient:
         transport = httpx.AsyncHTTPTransport(retries=0)
@@ -281,6 +286,26 @@ class HttpClient:
         assert self._client is not None
         await self.bucket.acquire()
 
+        effective_url = url
+        effective_params = params
+
+        # Response cache check (GET only)
+        cache_key = None
+        if self._cache_enabled and method.upper() == "GET":
+            import hashlib
+            cache_input = f"{method}:{effective_url}:{effective_params}:{headers}"
+            cache_key = hashlib.md5(cache_input.encode()).hexdigest()
+            if cache_key in self._response_cache:
+                cached = self._response_cache[cache_key]
+                return HttpResponse(
+                    url=cached.url,
+                    status_code=cached.status_code,
+                    headers=dict(cached.headers),
+                    text=cached.text,
+                    elapsed=0.0,
+                    error=cached.error,
+                )
+
         if self.human_timing and random.random() < 0.2:
             await asyncio.sleep(random.uniform(2.0, 5.0))
 
@@ -412,13 +437,21 @@ class HttpClient:
                     else:
                         logger.debug("CAPTCHA detected in response.")
 
-                return HttpResponse(
+                result = HttpResponse(
                     url=str(response.url),
                     status_code=response.status_code,
                     headers=dict(response.headers),
                     text=response.text,
                     elapsed=elapsed,
                 )
+                # Cache the response
+                if cache_key and self._cache_enabled:
+                    if len(self._response_cache) >= self._cache_max_size:
+                        # Evict oldest (first key)
+                        first_key = next(iter(self._response_cache))
+                        del self._response_cache[first_key]
+                    self._response_cache[cache_key] = result
+                return result
             except Exception as exc:
                 last_error = str(exc)
                 if attempt < self.max_retries:
