@@ -141,6 +141,45 @@ async def _probe_header_xss(ctx, base: str) -> None:
             ))
 
 
+async def _probe_stored_xss(ctx, base: str) -> None:
+    """Stored XSS: POST payload to common endpoints, then check if it appears on other pages."""
+    payload = "rmwstoredxss12345"
+    store_endpoints = ["/comment", "/comments", "/feedback", "/contact", "/message", "/post", "/reply"]
+    check_pages = ["/", "/comments", "/posts", "/messages", "/feedback"]
+
+    for endpoint in store_endpoints:
+        if not ctx.can_request():
+            return
+        ctx.increment()
+        resp = await ctx.http.post(
+            f"{base}{endpoint}",
+            data={"comment": payload, "message": payload, "text": payload, "content": payload},
+            timeout=ctx.settings.timeout,
+        )
+        if resp.status_code not in (200, 201, 302, 303):
+            continue
+        # Check if payload appears on other pages
+        for page in check_pages:
+            if not ctx.can_request():
+                return
+            ctx.increment()
+            check_resp = await ctx.http.get(f"{base}{page}", timeout=ctx.settings.timeout)
+            body = check_resp.text or ""
+            if payload in body:
+                ctx.add_finding(Finding(
+                    id=f"stored-xss-{endpoint.strip('/').replace('/', '-')}",
+                    title=f"Potential stored XSS via {endpoint}",
+                    severity=Severity.HIGH,
+                    confidence=0.75,
+                    asset=f"{base}{endpoint}",
+                    module="xss",
+                    description=f"Payload posted to {endpoint} was found reflected on {page}, suggesting stored XSS.",
+                    remediation="Apply context-aware output encoding on all user-supplied content.",
+                    tags=["xss", "stored"],
+                ))
+                return
+
+
 async def run(ctx) -> None:
     base = f"https://{ctx.target}"
     try:
@@ -151,6 +190,9 @@ async def run(ctx) -> None:
 
     # Header-based XSS check
     await _probe_header_xss(ctx, base)
+
+    # Stored XSS check
+    await _probe_stored_xss(ctx, base)
 
     tasks = [_probe_param(ctx, base, param) for param in PARAMS]
     await asyncio.gather(*tasks, return_exceptions=True)

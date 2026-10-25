@@ -108,3 +108,25 @@ async def run(ctx) -> None:
                 remediation="Restrict CORS to trusted origins.",
                 tags=["api", "cors"],
             ))
+
+    # API method testing: check if dangerous methods are allowed
+    for path in ["/api", "/api/v1", "/api/users"]:
+        if not ctx.can_request():
+            break
+        ctx.increment()
+        resp = await ctx.http.request("OPTIONS", f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
+        allow = resp.headers.get("allow", resp.headers.get("access-control-allow-methods", ""))
+        if allow:
+            dangerous = [m for m in ["PUT", "DELETE", "PATCH", "TRACE"] if m in allow.upper()]
+            if dangerous:
+                ctx.add_finding(Finding(
+                    id=f"api-dangerous-methods-{path.strip('/').replace('/', '-')}",
+                    title=f"Dangerous HTTP methods allowed on {path}",
+                    severity=Severity.MEDIUM,
+                    confidence=0.8,
+                    asset=f"https://{ctx.target}{path}",
+                    module="api",
+                    description=f"Endpoint allows dangerous methods: {', '.join(dangerous)}. Allow header: {allow}",
+                    remediation="Disable unnecessary HTTP methods on API endpoints.",
+                    tags=["api", "methods"],
+                ))

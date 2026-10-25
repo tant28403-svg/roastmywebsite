@@ -94,3 +94,56 @@ async def run(ctx) -> None:
             remediation="Remove or generalize the Server header.",
             tags=["information-disclosure"],
         ))
+
+    # CSP analysis
+    csp = headers.get("content-security-policy", "")
+    if csp:
+        csp_lower = csp.lower()
+        if "unsafe-inline" in csp_lower:
+            ctx.add_finding(Finding(
+                id="csp-unsafe-inline",
+                title="CSP allows unsafe-inline",
+                severity=Severity.MEDIUM,
+                confidence=1.0,
+                asset=str(resp.url),
+                module="headers",
+                description="Content-Security-Policy includes 'unsafe-inline', weakening XSS protection.",
+                remediation="Remove 'unsafe-inline' and use nonces or hashes for inline scripts.",
+                tags=["csp", "xss", "misconfiguration"],
+            ))
+        if "unsafe-eval" in csp_lower:
+            ctx.add_finding(Finding(
+                id="csp-unsafe-eval",
+                title="CSP allows unsafe-eval",
+                severity=Severity.MEDIUM,
+                confidence=1.0,
+                asset=str(resp.url),
+                module="headers",
+                description="Content-Security-Policy includes 'unsafe-eval', allowing dynamic code execution.",
+                remediation="Remove 'unsafe-eval' from CSP.",
+                tags=["csp", "xss", "misconfiguration"],
+            ))
+        if "*" in csp_lower.split():
+            ctx.add_finding(Finding(
+                id="csp-wildcard",
+                title="CSP uses wildcard source",
+                severity=Severity.MEDIUM,
+                confidence=0.9,
+                asset=str(resp.url),
+                module="headers",
+                description="Content-Security-Policy uses wildcard (*) in source directives.",
+                remediation="Replace wildcards with specific trusted origins.",
+                tags=["csp", "misconfiguration"],
+            ))
+        if "default-src" not in csp_lower:
+            ctx.add_finding(Finding(
+                id="csp-no-default-src",
+                title="CSP missing default-src directive",
+                severity=Severity.LOW,
+                confidence=0.9,
+                asset=str(resp.url),
+                module="headers",
+                description="Content-Security-Policy does not include a default-src fallback.",
+                remediation="Add a default-src directive to CSP.",
+                tags=["csp", "misconfiguration"],
+            ))

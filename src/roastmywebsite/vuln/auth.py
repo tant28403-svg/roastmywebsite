@@ -188,3 +188,50 @@ async def run(ctx) -> None:
         jwt_pattern = r"eyJ[A-Za-z0-9\-_]+\.eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+"
         for match in re.finditer(jwt_pattern, resp.text or ""):
             await _analyze_jwt(ctx, match.group(0))
+
+    # OAuth misconfiguration checks
+    await _check_oauth(ctx)
+
+
+async def _check_oauth(ctx) -> None:
+    """Check for common OAuth misconfigurations."""
+    base = f"https://{ctx.target}"
+    oauth_endpoints = ["/oauth/authorize", "/oauth2/authorize", "/auth/oauth", "/login/oauth/authorize", "/connect/authorize"]
+    for endpoint in oauth_endpoints:
+        if not ctx.can_request():
+            return
+        # Test missing state parameter
+        ctx.increment()
+        resp = await ctx.http.get(
+            f"{base}{endpoint}",
+            params={"client_id": "test", "redirect_uri": "https://evil.com/callback", "response_type": "code"},
+            timeout=ctx.settings.timeout,
+        )
+        if resp.status_code in (200, 302, 303):
+            # Check if redirect_uri is accepted without validation
+            location = resp.headers.get("location", "")
+            if "evil.com" in location:
+                ctx.add_finding(Finding(
+                    id=f"oauth-open-redirect-{endpoint.strip('/').replace('/', '-')}",
+                    title=f"OAuth open redirect on {endpoint}",
+                    severity=Severity.HIGH,
+                    confidence=0.8,
+                    asset=f"{base}{endpoint}",
+                    module="auth",
+                    description="OAuth endpoint accepts arbitrary redirect_uri without validation.",
+                    remediation="Validate redirect_uri against a strict allowlist.",
+                    tags=["auth", "oauth", "open-redirect"],
+                ))
+            # Check if state parameter is not required
+            if "state" not in (resp.text or "").lower() and resp.status_code in (200, 302):
+                ctx.add_finding(Finding(
+                    id=f"oauth-no-state-{endpoint.strip('/').replace('/', '-')}",
+                    title=f"OAuth may not require state parameter on {endpoint}",
+                    severity=Severity.MEDIUM,
+                    confidence=0.6,
+                    asset=f"{base}{endpoint}",
+                    module="auth",
+                    description="OAuth authorization endpoint may not enforce the state parameter (CSRF risk).",
+                    remediation="Require and validate the state parameter in OAuth flows.",
+                    tags=["auth", "oauth", "csrf"],
+                ))

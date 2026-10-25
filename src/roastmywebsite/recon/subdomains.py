@@ -6,7 +6,7 @@ import json
 import dns.resolver
 import tldextract
 
-from ..core.models import Asset
+from ..core.models import Asset, Finding, Severity
 
 COMMON_SUBS = [
     "www", "mail", "ftp", "admin", "api", "dev", "staging", "test", "blog", "shop",
@@ -113,3 +113,49 @@ async def run(ctx) -> None:
         if sub == root:
             continue
         ctx.add_asset(Asset(value=sub, asset_type="subdomain", source="subdomains"))
+
+    # Subdomain takeover detection
+    TAKEOVER_SIGNATURES = {
+        "github.io": ["There isn't a GitHub Pages site here", "404"],
+        "herokuapp.com": ["No such app", "heroku"],
+        "s3.amazonaws.com": ["NoSuchBucket", "The specified bucket does not exist"],
+        "azurewebsites.net": ["404 Web Site not found", "Microsoft Azure"],
+        "cloudfront.net": ["Bad Request", "ERROR: The request could not be satisfied"],
+        "pantheon.io": ["404", "The gods are wise"],
+        "ghost.io": ["Ghost", "404"],
+        "shopify.com": ["Sorry, this shop is currently unavailable", "Only one step left"],
+        "tumblr.com": ["There's nothing here", "Whatever you were looking for doesn't currently exist"],
+        "wordpress.com": ["Do you want to register", "wordpress"],
+        "bitbucket.io": ["Repository not found", "Bitbucket"],
+        "surge.sh": ["project not found", "surge"],
+    }
+
+    async def _check_takeover(subdomain: str) -> None:
+        if not ctx.can_request():
+            return
+        ctx.increment()
+        try:
+            resp = await ctx.http.get(f"https://{subdomain}", timeout=ctx.settings.timeout)
+            body = (resp.text or "").lower()
+            for service, indicators in TAKEOVER_SIGNATURES.items():
+                if service in subdomain:
+                    for indicator in indicators:
+                        if indicator.lower() in body:
+                            ctx.add_finding(Finding(
+                                id=f"subdomain-takeover-{subdomain.replace('.', '-')}",
+                                title=f"Potential subdomain takeover: {subdomain}",
+                                severity=Severity.HIGH,
+                                confidence=0.7,
+                                asset=subdomain,
+                                module="subdomains",
+                                description=f"Subdomain {subdomain} may be vulnerable to takeover ({service}).",
+                                remediation="Remove the DNS record or claim the service.",
+                                tags=["subdomain", "takeover"],
+                            ))
+                            return
+        except Exception:
+            pass
+
+    # Check up to 20 subdomains for takeover
+    takeover_targets = [s for s in sorted(found) if s != root][:20]
+    await asyncio.gather(*[_check_takeover(s) for s in takeover_targets], return_exceptions=True)

@@ -199,3 +199,25 @@ async def run(ctx) -> None:
             remediation="Configure server to prefer ECDHE/DHE cipher suites.",
             tags=["tls", "pfs"],
         ))
+
+    # Certificate chain validation
+    try:
+        # Try to verify the full chain
+        verify_ctx = ssl.create_default_context()
+        with socket.create_connection((host, port), timeout=ctx.settings.timeout) as sock:
+            with verify_ctx.wrap_socket(sock, server_hostname=host) as ssock:
+                pass  # If this succeeds, chain is valid
+    except ssl.SSLCertVerificationError as exc:
+        ctx.add_finding(Finding(
+            id="tls-cert-chain-invalid",
+            title="TLS certificate chain validation failed",
+            severity=Severity.HIGH,
+            confidence=1.0,
+            asset=host,
+            module="tls",
+            description=f"Certificate chain validation failed: {exc}",
+            remediation="Ensure the full certificate chain (including intermediate certs) is served.",
+            tags=["tls", "certificate", "chain"],
+        ))
+    except Exception:
+        pass  # Connection issues already handled above
