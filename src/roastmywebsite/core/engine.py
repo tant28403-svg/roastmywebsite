@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -70,15 +71,22 @@ class ScanEngine:
                 http=http,
                 event_bus=self.event_bus,
             )
-            for name in module_names:
+            # Run independent modules in parallel for better performance
+            async def _run_module(name: str) -> None:
                 if name not in self.modules:
-                    continue
+                    return
                 self.event_bus.emit("module_start", name)
                 try:
                     await self.modules[name](ctx)
                 except Exception as exc:
                     self.event_bus.emit("module_error", {"module": name, "error": str(exc)})
                 self.event_bus.emit("module_done", name)
+
+            # Group modules into batches to limit concurrency and avoid overwhelming the target
+            batch_size = 4
+            for i in range(0, len(module_names), batch_size):
+                batch = module_names[i:i + batch_size]
+                await asyncio.gather(*[_run_module(name) for name in batch], return_exceptions=True)
             finished = datetime.utcnow()
             result = ScanResult(
                 id=scan_id,
