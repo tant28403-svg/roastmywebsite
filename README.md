@@ -76,18 +76,6 @@ The tool runs without these. Modules that need a missing tool are skipped, and t
 sudo apt install -y nmap naabu nuclei ffuf subfinder amass
 ```
 
-If a package is missing from your repositories, install it with Go:
-
-```bash
-sudo apt install -y golang-go libpcap-dev
-go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-go install -v github.com/owasp-amass/amass/v4/...@latest
-echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
-source ~/.bashrc
-```
-
 Browser checks need a separate Chromium download:
 
 ```bash
