@@ -130,7 +130,7 @@ Or explicitly:
 roastmywebsite interactive
 ```
 
-The menu lets you pick scan type, modules, port scanner, subdomain tool, nuclei filters, and rate limit by entering numbers. All existing CLI flags still work for scripting.
+The menu lets you pick scan type, modules, port scanner, subdomain tool, nuclei filters, rate limit, concurrency, proxy, stealth mode, and WAF evasion settings by entering numbers. All existing CLI flags still work for scripting.
 
 ## Use
 
@@ -190,6 +190,15 @@ For `active`, `aggressive`, and `roast`, the tool asks you to confirm you have p
 | `--nuclei-exclude-tags` | none | Comma-separated excluded tags |
 | `--modules` | none | Comma-separated module names to run (overrides mode) |
 | `--stealth` | off | Use a browser User-Agent to blend in |
+| `--waf-evasion` | off | Enable all WAF evasion techniques (preset bundle) |
+| `--jitter` | 0.0 | Random delay per request (seconds) |
+| `--rotate-ua` | off | Rotate User-Agent per request |
+| `--proxy-pool` | none | Comma-separated proxy URLs for IP rotation |
+| `--randomize-headers` | off | Randomize request headers |
+| `--payload-encoding` | none | Payload encoding: url, case, double_url, comments, unicode, hex, all |
+| `--auto-backoff` | off | Auto-pause on block detection |
+| `--tls-rotate` | off | Rotate TLS/JA3 fingerprints (requires curl_cffi) |
+| `--doh` | none | DNS-over-HTTPS resolver URL |
 
 `recon` and `roast` accept the same tuning options. Run `roastmywebsite --help` to see everything.
 
