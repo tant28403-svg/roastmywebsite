@@ -37,7 +37,7 @@ async def run(ctx) -> None:
     import re as _re
     scripts = _re.findall(r"<script[^>]+src=[\"']([^\"']+)[\"']", resp.text, _re.IGNORECASE)
     seen: set[str] = set()
-    for src in scripts[:20]:
+    for src in scripts[:50]:
         if not ctx.can_request():
             return
         url = src if src.startswith("http") else f"https://{ctx.target}/{src.lstrip('/')}"
@@ -112,3 +112,31 @@ async def run(ctx) -> None:
         for fw, sigs in framework_sigs.items():
             if any(sig.lower() in r.text.lower() for sig in sigs):
                 ctx.add_asset(Asset(value=fw, asset_type="js_framework", source="js", metadata={"script": url}))
+
+        # Dependency analysis: check for known vulnerable JS library versions
+        vuln_libs = {
+            "jquery": [("1.", "2.", "3.4", "3.5.0", "3.5.1"), "CVE-2020-11022, CVE-2020-11023"],
+            "angular": [("1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"), "Multiple XSS CVEs"],
+            "lodash": [("4.17.0", "4.17.1", "4.17.2", "4.17.3", "4.17.4"), "CVE-2019-10744 (prototype pollution)"],
+            "moment": [("2.19", "2.20", "2.21", "2.22"), "CVE-2022-24785 (ReDoS)"],
+            "bootstrap": [("3.", "4.0", "4.1", "4.2", "4.3.0", "4.3.1"), "CVE-2019-8331 (XSS)"],
+        }
+        for lib, (versions, cves) in vuln_libs.items():
+            if lib in r.text.lower():
+                # Try to extract version
+                import re as _re2
+                version_match = _re2.search(rf"{lib}[^\"']*?(\d+\.\d+[\.\d]*)", r.text, _re2.IGNORECASE)
+                if version_match:
+                    ver = version_match.group(1)
+                    if any(ver.startswith(v) for v in versions):
+                        ctx.add_finding(Finding(
+                            id=f"vuln-js-lib-{lib}",
+                            title=f"Potentially vulnerable {lib} version {ver}",
+                            severity=Severity.MEDIUM,
+                            confidence=0.6,
+                            asset=url,
+                            module="js",
+                            description=f"Detected {lib} {ver} which may be affected by: {cves}.",
+                            remediation=f"Update {lib} to the latest version.",
+                            tags=["javascript", "dependency", "vulnerable-lib"],
+                        ))

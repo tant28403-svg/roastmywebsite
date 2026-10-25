@@ -90,6 +90,15 @@ PATHS = [
     ("/.well-known/security.txt", "Security.txt found", Severity.INFO),
     ("/robots.txt", "Robots.txt found", Severity.INFO),
     ("/sitemap.xml", "Sitemap found", Severity.INFO),
+    # Backup file patterns for common sensitive files
+    ("/.env.bak", "Exposed environment backup", Severity.CRITICAL),
+    ("/.env.old", "Exposed environment backup", Severity.CRITICAL),
+    ("/.env.save", "Exposed environment backup", Severity.CRITICAL),
+    ("/config.php.bak", "Exposed config backup", Severity.HIGH),
+    ("/config.php.old", "Exposed config backup", Severity.HIGH),
+    ("/wp-config.php.bak", "Exposed WordPress config backup", Severity.CRITICAL),
+    ("/database.yml.bak", "Exposed database config backup", Severity.HIGH),
+    ("/settings.py.bak", "Exposed settings backup", Severity.CRITICAL),
     # Lock files (NEW)
     ("/composer.lock", "Exposed Composer lock file", Severity.LOW),
     ("/yarn.lock", "Exposed Yarn lock file", Severity.LOW),
@@ -109,22 +118,24 @@ PATHS = [
 ]
 
 
-async def _soft_404_baseline(ctx, host: str) -> tuple[str, int]:
+async def _soft_404_baseline(ctx, host: str, use_https: bool = True) -> tuple[str, int]:
     """Fetch a known-nonexistent path to detect CMS soft 404 behavior."""
     random_path = "/rmw-probe-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=12))
+    scheme = "https" if use_https else "http"
     try:
-        resp = await ctx.http.get(f"https://{host}{random_path}", timeout=ctx.settings.timeout)
+        resp = await ctx.http.get(f"{scheme}://{host}{random_path}", timeout=ctx.settings.timeout)
         return (resp.text[:200] if resp.ok else "", len(resp.text or ""))
     except Exception:
         return ("", 0)
 
 
-async def _check_path(ctx, host: str, path: str, title: str, sev: Severity, baseline: str, baseline_len: int) -> None:
+async def _check_path(ctx, host: str, path: str, title: str, sev: Severity, baseline: str, baseline_len: int, use_https: bool = True) -> None:
     if not ctx.can_request():
         return
     ctx.increment()
-    resp = await ctx.http.get(f"https://{host}{path}", timeout=ctx.settings.timeout)
-    if (not resp.ok) and ctx.can_request():
+    scheme = "https" if use_https else "http"
+    resp = await ctx.http.get(f"{scheme}://{host}{path}", timeout=ctx.settings.timeout)
+    if (not resp.ok) and ctx.can_request() and use_https:
         ctx.increment()
         resp = await ctx.http.get(f"http://{host}{path}", timeout=ctx.settings.timeout)
     if resp.status_code != 200 or len(resp.text) == 0:
@@ -160,8 +171,16 @@ async def _check_path(ctx, host: str, path: str, title: str, sev: Severity, base
 
 async def run(ctx) -> None:
     host = ctx.target
-    baseline, baseline_len = await _soft_404_baseline(ctx, host)
+    # Detect whether the target speaks HTTPS or HTTP once, to avoid
+    # wasting requests on a protocol that doesn't work.
+    use_https = True
+    if ctx.can_request():
+        ctx.increment()
+        probe = await ctx.http.get(f"https://{host}/", timeout=ctx.settings.timeout)
+        if not probe.ok and probe.status_code == 0:
+            use_https = False
+    baseline, baseline_len = await _soft_404_baseline(ctx, host, use_https)
     # Run all path checks concurrently.
     import asyncio
-    tasks = [_check_path(ctx, host, path, title, sev, baseline, baseline_len) for path, title, sev in PATHS]
+    tasks = [_check_path(ctx, host, path, title, sev, baseline, baseline_len, use_https) for path, title, sev in PATHS]
     await asyncio.gather(*tasks, return_exceptions=True)

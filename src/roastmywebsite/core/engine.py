@@ -54,8 +54,6 @@ class ModuleContext:
         return False
 
     def add_finding(self, finding: Finding) -> None:
-        if self.is_duplicate_finding(finding.module, finding.asset, finding.title):
-            return
         self.findings.append(finding)
         self.event_bus.emit("finding", finding)
 
