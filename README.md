@@ -204,7 +204,7 @@ For `active`, `aggressive`, and `roast`, the tool asks you to confirm you have p
 
 ## Stealth mode
 
-`--stealth` replaces the identifiable `RoastMyWebsite/0.3` User-Agent with a common desktop browser User-Agent. The User-Agent is chosen once per scan and stays the same for the whole run. Interactive mode enables stealth by default.
+`--stealth` replaces the identifiable `RoastMyWebsite/0.4` User-Agent with a common desktop browser User-Agent. The User-Agent is chosen once per scan and stays the same for the whole run. Interactive mode enables stealth by default.
 
 ```bash
 # CLI stealth mode
@@ -319,19 +319,19 @@ The `auth`, `browser`, `dom_xss`, `oob`, and `dns_oob` modules only run in `aggr
 
 | Module | Techniques | Parameters/Paths tested |
 |---|---|---|
-| `injection` | Error-based, boolean-based blind, time-based blind, union-based | 30 params × 7+ payloads |
-| `xss` | Reflected XSS across HTML, attribute, JS, URL contexts + filter bypass | 25 params × 15 payloads |
-| `ssrf` | Multi-cloud metadata (AWS, GCP, Azure, Alibaba, DO) + internal services + protocol smuggling | 30 params × 16 targets |
-| `idor` | Sequential path probing + parameter tampering | 32 paths + 17 params × 5 values |
-| `exposed_files` | 55 sensitive paths with soft 404 detection | 55 paths |
-| `secrets` | 37 secret patterns (AWS, GCP, Azure, Stripe, GitHub, JWT, DB URIs, etc.) | 9 paths |
+| `injection` | Error-based, boolean-based blind, time-based blind, union-based, NoSQL, LDAP, XML/XXE, cookie/header/JSON body, second-order | 40+ params × 7+ payloads |
+| `xss` | Reflected XSS across HTML, attribute, JS, URL contexts + filter bypass + polyglots + mXSS + header-based + stored | 30+ params × 40+ payloads |
+| `ssrf` | Multi-cloud metadata (AWS, GCP, Azure, Alibaba, DO, Oracle, IBM, Tencent, Huawei) + internal services + protocol smuggling + URL parser bypasses + header-based | 30+ params × 30+ targets |
+| `idor` | Sequential path probing + parameter tampering + mass assignment + UUID enumeration + API version differences | 32 paths + 17 params × 6 values |
+| `exposed_files` | 60+ sensitive paths with soft 404 detection + backup patterns | 60+ paths |
+| `secrets` | 50+ secret patterns (AWS, GCP, Azure, Stripe, GitHub, JWT, DB URIs, OpenAI, Anthropic, etc.) | 18 paths |
 | `nuclei` | Template-based checks with tag/severity filtering | Configurable |
 | `tls` | Weak protocol, weak cipher, certificate expiry, self-signed, PFS, SAN | Port 443 |
 | `headers` | 7 active security headers + CORS + HSTS preload + server version + cookie flags | 1 root response (HTTPS, HTTP fallback) |
 | `cloud` | S3, Azure Blob, GCP Storage, Firebase, DigitalOcean Spaces | 28 bucket names |
 | `email_security` | SPF, DMARC, DKIM, MTA-STS, TLS-RPT, SPF/DMARC policy analysis | 12 DKIM selectors |
-| `auth` | 25 default credential pairs, JWT analysis (none alg, symmetric, sensitive data) | 13 endpoints |
-| `api` | 20 spec paths, 12 API bases, 13 endpoints, OpenAPI parsing, GraphQL introspection, CORS | 45 paths (20 spec + 12 bases + 13 endpoints) + GraphQL POST + CORS |
+| `auth` | 25 default credential pairs, JWT analysis (none alg, symmetric, sensitive data, weak secret brute force) + OAuth misconfig | 13 endpoints |
+| `api` | 20 spec paths, 12 API bases, 13 endpoints, OpenAPI parsing, GraphQL introspection, CORS, dangerous method testing | 45 paths + GraphQL POST + CORS + method checks |
 | `js` | Endpoint extraction, secret detection, source maps, framework detection | 20 scripts |
 | `crawl` | Link crawling, forms, comments, params, backup files, ffuf | 100 pages |
 | `tech` | 40+ signatures for CMS, frameworks, servers, and CDN/WAF (verified: Next.js, React, Vercel) | 1 page (HTML + response headers) |
@@ -391,7 +391,7 @@ concurrency: 20
 proxy: null
 
 verify_tls: true
-user_agent: "RoastMyWebsite/0.3 (+https://github.com/tant28403-svg/roastmywebsite)"
+user_agent: "RoastMyWebsite/0.4 (+https://github.com/tant28403-svg/roastmywebsite)"
 
 # Scanning behaviour
 aggressive: false
