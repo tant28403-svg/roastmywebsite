@@ -177,6 +177,23 @@ def run_interactive() -> None:
     except ValueError:
         rate = 5.0
 
+    # Concurrency
+    print()
+    conc_input = _prompt("Concurrency (parallel requests, default 20; lower for WAF-protected targets): ", "20")
+    try:
+        concurrency = int(conc_input)
+        if not (1 <= concurrency <= 100):
+            print("  Invalid range, using default 20.")
+            concurrency = 20
+    except ValueError:
+        print("  Invalid input, using default 20.")
+        concurrency = 20
+
+    # Proxy
+    print()
+    proxy_input = _prompt("HTTP proxy URL (or Enter to skip): ")
+    proxy = proxy_input if proxy_input else None
+
     # Stealth mode (on by default in interactive mode)
     print()
     print("Stealth mode (hide scanner identity):")
@@ -184,6 +201,93 @@ def run_interactive() -> None:
     print("  2. off           - Identify as RoastMyWebsite")
     stealth_choice = _prompt_choice("Select (1-2): ", 2, 1)
     stealth = stealth_choice == 1
+
+    # WAF evasion
+    print()
+    print("WAF evasion (advanced):")
+    print("  1. off (default)")
+    print("  2. on  - jitter + UA rotation + header randomization + human timing")
+    print("  3. custom - configure each option")
+    waf_choice = _prompt_choice("Select (1-3): ", 3, 1)
+    waf_evasion = False
+    jitter = 0.0
+    rotate_ua = False
+    randomize_headers = False
+    rotate_referer = False
+    human_timing = False
+    proxy_pool_str = None
+    payload_encoding_str = None
+    waf_adapt_flag = False
+    auto_backoff_flag = False
+    rotate_protocol_flag = False
+    chunked_flag = False
+    pad_requests_flag = False
+    param_pollution_flag = False
+    normalize_paths_flag = False
+    if waf_choice == 2:
+        waf_evasion = True
+        payload_encoding_str = "url,case"
+        waf_adapt_flag = True
+        auto_backoff_flag = True
+        rotate_protocol_flag = True
+        chunked_flag = True
+        pad_requests_flag = True
+        param_pollution_flag = True
+        normalize_paths_flag = True
+    elif waf_choice == 3:
+        print()
+        if _prompt("Enable jitter (random delay per request)? (y/n): ").lower().startswith("y"):
+            jit_input = _prompt("Jitter max (seconds, default 1.5): ", "1.5")
+            try:
+                jitter = float(jit_input)
+            except ValueError:
+                jitter = 1.5
+        if _prompt("Rotate User-Agent per request? (y/n): ").lower().startswith("y"):
+            rotate_ua = True
+        if _prompt("Randomize request headers? (y/n): ").lower().startswith("y"):
+            randomize_headers = True
+        if _prompt("Rotate Referer header? (y/n): ").lower().startswith("y"):
+            rotate_referer = True
+        if _prompt("Human-like timing patterns? (y/n): ").lower().startswith("y"):
+            human_timing = True
+        pp_input = _prompt("Proxy pool (comma-separated URLs, or Enter to skip): ")
+        if pp_input:
+            proxy_pool_str = pp_input
+        # Phase 2 options
+        if _prompt("Enable payload encoding? (y/n): ").lower().startswith("y"):
+            pe_input = _prompt("Encoding types (comma-separated: url,case,double_url,comments,unicode,hex,all; default url,case): ", "url,case")
+            payload_encoding_str = pe_input if pe_input else "url,case"
+        else:
+            payload_encoding_str = None
+        if _prompt("Enable WAF-specific payload adaptation? (y/n): ").lower().startswith("y"):
+            waf_adapt_flag = True
+        else:
+            waf_adapt_flag = False
+        if _prompt("Enable auto-backoff on block detection? (y/n): ").lower().startswith("y"):
+            auto_backoff_flag = True
+        else:
+            auto_backoff_flag = False
+        # Phase 3 options
+        if _prompt("Enable protocol switching (HTTP/1.1 <-> HTTP/2)? (y/n): ").lower().startswith("y"):
+            rotate_protocol_flag = True
+        else:
+            rotate_protocol_flag = False
+        if _prompt("Enable chunked transfer encoding? (y/n): ").lower().startswith("y"):
+            chunked_flag = True
+        else:
+            chunked_flag = False
+        if _prompt("Enable request body padding? (y/n): ").lower().startswith("y"):
+            pad_requests_flag = True
+        else:
+            pad_requests_flag = False
+        if _prompt("Enable parameter pollution? (y/n): ").lower().startswith("y"):
+            param_pollution_flag = True
+        else:
+            param_pollution_flag = False
+        if _prompt("Enable path normalization? (y/n): ").lower().startswith("y"):
+            normalize_paths_flag = True
+        else:
+            normalize_paths_flag = False
 
     # Permission check for active/aggressive modes
     aggressive = mode_name in ("active", "aggressive", "roast")
@@ -198,6 +302,8 @@ def run_interactive() -> None:
     # Build settings
     settings = load_config()
     settings.rate_limit = rate
+    settings.concurrency = concurrency
+    settings.proxy = proxy or settings.proxy
     settings.stealth = stealth or settings.stealth
     settings.aggressive = aggressive or settings.aggressive
     settings.permission_acknowledged = permission or settings.permission_acknowledged
@@ -210,6 +316,40 @@ def run_interactive() -> None:
     if nuclei_exclude:
         settings.nuclei_exclude_tags = nuclei_exclude
 
+    # WAF evasion settings
+    if waf_evasion:
+        if jitter == 0.0:
+            jitter = 1.5
+        rotate_ua = True
+        randomize_headers = True
+        rotate_referer = True
+        settings.use_cookies = True
+        human_timing = True
+        settings.payload_encoding = "url,case"
+        settings.auto_backoff = True
+        settings.waf_adapt = True
+
+    settings.waf_evasion = waf_evasion or settings.waf_evasion
+    if jitter > 0:
+        settings.jitter = jitter
+    settings.rotate_user_agent = rotate_ua or settings.rotate_user_agent
+    if proxy_pool_str:
+        settings.proxy_pool = [p.strip() for p in proxy_pool_str.split(",") if p.strip()]
+    settings.randomize_headers = randomize_headers or settings.randomize_headers
+    settings.rotate_referer = rotate_referer or settings.rotate_referer
+    settings.human_timing = human_timing or settings.human_timing
+    # Phase 2
+    if payload_encoding_str:
+        settings.payload_encoding = payload_encoding_str
+    settings.waf_adapt = waf_adapt_flag or settings.waf_adapt
+    settings.auto_backoff = auto_backoff_flag or settings.auto_backoff
+    # Phase 3
+    settings.rotate_protocol = rotate_protocol_flag or settings.rotate_protocol
+    settings.chunked_encoding = chunked_flag or settings.chunked_encoding
+    settings.pad_requests = pad_requests_flag or settings.pad_requests
+    settings.param_pollution = param_pollution_flag or settings.param_pollution
+    settings.normalize_paths = normalize_paths_flag or settings.normalize_paths
+
     # Determine mode for _run_scan
     run_mode = "roast" if mode_name == "roast" else mode_name
     if mode_name == "custom":
@@ -218,7 +358,7 @@ def run_interactive() -> None:
     modules_str = ",".join(selected_modules) if selected_modules else None
 
     print()
-    print(f"Starting scan on {target} (mode={run_mode})...")
+    print(f"Starting scan on {target} (mode={run_mode}, rate={rate}, concurrency={concurrency})...")
     if selected_modules:
         print(f"Modules: {', '.join(selected_modules)}")
     print()

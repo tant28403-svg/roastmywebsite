@@ -68,6 +68,7 @@ The tool runs without these. Modules that need a missing tool are skipped, and t
 | `amass` | Extra asset discovery | Up to 5 minutes |
 | Playwright + Chromium | `browser` and `dom_xss` checks | A few seconds |
 | A domain you control | `dns_oob` out-of-band checks | A few seconds |
+| `curl_cffi` | TLS/JA3 fingerprint rotation (`--tls-rotate`) | A few seconds |
 
 > **Note:** When external tools (nmap, naabu, nuclei, ffuf, subfinder, amass) are installed, the tool gives them up to 5 minutes each to complete deep scans for accurate results. This means a full aggressive scan can take 10-30 minutes depending on which tools are installed and how many are enabled. HTTP requests to the target are throttled at 5 requests per second by default. If the scan seems slow, this is expected — the tool prioritises thorough results over speed.
 
@@ -92,6 +93,12 @@ Browser checks need a separate Chromium download:
 ```bash
 pip install -e ".[browser]"
 playwright install chromium
+```
+
+WAF evasion TLS rotation needs curl_cffi:
+
+```bash
+pip install -e ".[waf]"
 ```
 
 ## Install
@@ -221,6 +228,49 @@ Important: stealth mode only changes the User-Agent header. It does not hide req
 ```bash
 roastmywebsite scan example.com --stealth --rate 1 --concurrency 5
 ```
+
+## WAF evasion
+
+`--waf-evasion` enables a bundle of techniques that make scanning traffic look more like a real browser and vary request signatures so rule-based WAFs (Cloudflare, AWS WAF, ModSecurity, Imperva) are harder to trigger. All techniques are individually configurable.
+
+```bash
+# Enable all evasion techniques
+roastmywebsite scan example.com --mode safe --waf-evasion
+
+# Fine-tune individual techniques
+roastmywebsite scan example.com --mode safe --jitter 2.0 --rotate-ua --randomize-headers --proxy-pool "http://p1:8080,socks5h://p2:1080"
+```
+
+### Techniques
+
+| Flag | What it does |
+|---|---|
+| `--waf-evasion` | Enable all techniques below (preset bundle) |
+| `--jitter FLOAT` | Add random delay (0 to FLOAT seconds) per request to break metronomic cadence |
+| `--rotate-ua` | Rotate User-Agent per request instead of once per scan |
+| `--proxy-pool TEXT` | Comma-separated proxy URLs for IP rotation |
+| `--randomize-headers` | Shuffle header order and inject browser-realistic noise headers |
+| `--rotate-referer` | Rotate Referer header (Google, Bing, DuckDuckGo, or direct) |
+| `--human-timing` | Add occasional longer pauses (2-5s) to simulate reading pages |
+| `--payload-encoding` | Encode payloads: `url`, `double_url`, `case`, `comments`, `unicode`, `hex`, or `all` |
+| `--waf-adapt` | Auto-adapt payloads to detected WAF type (Cloudflare, ModSecurity, AWS WAF, Imperva) |
+| `--auto-backoff` | Pause and reduce rate on 403/429/503, switch proxy, then resume |
+| `--captcha-action` | CAPTCHA handling: `skip` (default), `pause`, or `abort` |
+| `--rotate-protocol` | Alternate between HTTP/1.1 and HTTP/2 per request |
+| `--chunked` | Use chunked transfer encoding for request bodies |
+| `--pad-requests` | Add random padding to request bodies to exceed WAF inspection limits |
+| `--param-pollution` | HTTP Parameter Pollution (duplicate params with benign + malicious values) |
+| `--normalize-paths` | Vary request paths (trailing slashes, case, double slashes, dot segments) |
+| `--doh TEXT` | DNS-over-HTTPS resolver URL (e.g. https://cloudflare-dns.com/dns-query) |
+| `--tls-rotate` | Rotate TLS/JA3 fingerprints (requires `pip install -e ".[waf]"`) |
+
+### Limitations
+
+- **Behavioral WAFs** (Cloudflare Bot Management, Akamai Bot Manager) analyze mouse movement, JS execution, and request patterns over time. No scanner flag defeats these — use the `browser` module or an anti-detect browser.
+- **CAPTCHA challenges** cannot be auto-solved. The tool detects and pauses or skips.
+- **IP reputation**: datacenter proxy IPs are often flagged. Residential proxies are more effective but cost more.
+- **Rate limits still apply** — evasion slows you down, not speeds you up.
+- All evasion is for **authorized testing only**. Using these against systems you do not own is illegal.
 
 ## Hiding DNS & IP Leaks
 

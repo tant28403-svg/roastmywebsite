@@ -22,6 +22,7 @@ class ModuleContext:
     assets: list[Asset] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
     request_count: int = 0
+    waf_type: str | None = None
 
     def add_asset(self, asset: Asset) -> None:
         self.assets.append(asset)

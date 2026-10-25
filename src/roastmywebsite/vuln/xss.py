@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 
+from ..core.encoding import encode_payloads
 from ..core.models import Finding, Severity
+from ..core.waf_detect import detect_waf, waf_adapt_payload
 
 # Reflected XSS payloads for different contexts
 PAYLOADS = [
@@ -49,7 +51,15 @@ async def _probe_param(ctx, base: str, param: str) -> None:
     baseline_resp = await ctx.http.get(base, params={param: BENIGN}, timeout=ctx.settings.timeout)
     baseline_body = baseline_resp.text or ""
 
-    for payload in PAYLOADS:
+    encoding = getattr(ctx.settings, "payload_encoding", "none")
+    payloads = encode_payloads(PAYLOADS, encoding)
+    if getattr(ctx.settings, "waf_adapt", False) and getattr(ctx, "waf_type", None):
+        adapted = []
+        for p in payloads:
+            adapted.extend(waf_adapt_payload(p, ctx.waf_type))
+        seen = set()
+        payloads = [p for p in adapted if not (p in seen or seen.add(p))]
+    for payload in payloads:
         if not ctx.can_request():
             return
         ctx.increment()
@@ -81,5 +91,10 @@ async def _probe_param(ctx, base: str, param: str) -> None:
 
 async def run(ctx) -> None:
     base = f"https://{ctx.target}"
+    try:
+        resp = await ctx.http.get(base, timeout=ctx.settings.timeout)
+        ctx.waf_type = detect_waf(resp.headers, resp.text)
+    except Exception:
+        ctx.waf_type = None
     tasks = [_probe_param(ctx, base, param) for param in PARAMS]
     await asyncio.gather(*tasks, return_exceptions=True)

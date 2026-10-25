@@ -45,3 +45,27 @@ nuclei_templates: null
 nuclei_tags: null
 nuclei_severity: null
 nuclei_exclude_tags: null
+
+# WAF evasion (all disabled by default)
+waf_evasion: false
+jitter: 0.0
+rotate_user_agent: false
+ua_rotation_interval: 1
+proxy_pool: []
+randomize_headers: false
+rotate_referer: false
+rotate_protocol: false
+chunked_encoding: false
+use_cookies: true
+human_timing: false
+payload_encoding: "none"
+waf_adapt: false
+fragment_payloads: false
+auto_backoff: false
+backoff_cooldown: 30
+captcha_action: "skip"
+pad_requests: false
+param_pollution: false
+normalize_paths: false
+tls_rotate: false
+doh_resolver: null

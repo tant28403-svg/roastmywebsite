@@ -51,6 +51,9 @@ dev = [
 browser = [
   "playwright>=1.44.0",
 ]
+waf = [
+  "curl_cffi>=0.7.0",
+]
 
 [project.scripts]
 roastmywebsite = "roastmywebsite.cli:app"

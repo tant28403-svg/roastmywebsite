@@ -41,6 +41,28 @@ def _settings_from_options(
     nuclei_severity: str | None = None,
     nuclei_exclude_tags: str | None = None,
     stealth: bool = False,
+    # WAF evasion options
+    waf_evasion: bool = False,
+    jitter: float = 0.0,
+    rotate_ua: bool = False,
+    proxy_pool: str | None = None,
+    randomize_headers: bool = False,
+    rotate_referer: bool = False,
+    human_timing: bool = False,
+    # Phase 2 options
+    payload_encoding: str | None = None,
+    waf_adapt: bool = False,
+    auto_backoff: bool = False,
+    captcha_action: str | None = None,
+    # Phase 3 options
+    rotate_protocol: bool = False,
+    chunked: bool = False,
+    pad_requests: bool = False,
+    param_pollution: bool = False,
+    normalize_paths: bool = False,
+    doh: str | None = None,
+    # Phase 4 options
+    tls_rotate: bool = False,
 ) -> ScanSettings:
     settings = load_config()
     settings.rate_limit = rate
@@ -51,6 +73,48 @@ def _settings_from_options(
     settings.ports_tool = ports_tool
     settings.subdomain_tool = subdomain_tool
     settings.stealth = stealth or settings.stealth
+
+    # WAF evasion preset expansion
+    if waf_evasion:
+        if jitter == 0.0:
+            jitter = 1.5
+        rotate_ua = True
+        randomize_headers = True
+        rotate_referer = True
+        settings.use_cookies = True
+        human_timing = True
+        settings.payload_encoding = "url,case"
+        settings.auto_backoff = True
+        settings.waf_adapt = True
+        settings.captcha_action = "skip"
+
+    settings.waf_evasion = waf_evasion or settings.waf_evasion
+    settings.jitter = jitter if jitter > 0 else settings.jitter
+    settings.rotate_user_agent = rotate_ua or settings.rotate_user_agent
+    if proxy_pool:
+        settings.proxy_pool = [p.strip() for p in proxy_pool.split(",") if p.strip()]
+    settings.randomize_headers = randomize_headers or settings.randomize_headers
+    settings.rotate_referer = rotate_referer or settings.rotate_referer
+    settings.human_timing = human_timing or settings.human_timing
+
+    # Phase 2: payload encoding and adaptive detection
+    if payload_encoding:
+        settings.payload_encoding = payload_encoding
+    settings.waf_adapt = waf_adapt or settings.waf_adapt
+    settings.auto_backoff = auto_backoff or settings.auto_backoff
+    if captcha_action:
+        settings.captcha_action = captcha_action
+    # Phase 3
+    settings.rotate_protocol = rotate_protocol or settings.rotate_protocol
+    settings.chunked_encoding = chunked or settings.chunked_encoding
+    settings.pad_requests = pad_requests or settings.pad_requests
+    settings.param_pollution = param_pollution or settings.param_pollution
+    settings.normalize_paths = normalize_paths or settings.normalize_paths
+    if doh:
+        settings.doh_resolver = doh
+    # Phase 4
+    settings.tls_rotate = tls_rotate or settings.tls_rotate
+
     if nuclei_templates:
         settings.nuclei_templates = nuclei_templates
     if nuclei_tags:
@@ -120,10 +184,32 @@ def recon(
     nuclei_exclude_tags: str | None = typer.Option(None, "--nuclei-exclude-tags", help="Comma-separated excluded tags"),
     modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
     stealth: bool = typer.Option(False, "--stealth", help="Use browser User-Agent to blend in"),
+    # WAF evasion
+    waf_evasion: bool = typer.Option(False, "--waf-evasion", help="Enable all WAF evasion techniques"),
+    jitter: float = typer.Option(0.0, "--jitter", help="Random delay per request (seconds)"),
+    rotate_ua: bool = typer.Option(False, "--rotate-ua", help="Rotate User-Agent per request"),
+    proxy_pool: str | None = typer.Option(None, "--proxy-pool", help="Comma-separated proxy URLs for rotation"),
+    randomize_headers: bool = typer.Option(False, "--randomize-headers", help="Randomize request headers"),
+    rotate_referer: bool = typer.Option(False, "--rotate-referer", help="Rotate Referer header"),
+    human_timing: bool = typer.Option(False, "--human-timing", help="Human-like request timing patterns"),
+    # Phase 2
+    payload_encoding: str | None = typer.Option(None, "--payload-encoding", help="Payload encoding: url,double_url,case,comments,unicode,hex,all"),
+    waf_adapt: bool = typer.Option(False, "--waf-adapt", help="Auto-adapt payloads to detected WAF"),
+    auto_backoff: bool = typer.Option(False, "--auto-backoff", help="Auto-pause on block detection"),
+    captcha_action: str | None = typer.Option(None, "--captcha-action", help="CAPTCHA handling: skip|pause|abort"),
+    # Phase 3
+    rotate_protocol: bool = typer.Option(False, "--rotate-protocol", help="Alternate HTTP/1.1 and HTTP/2"),
+    chunked: bool = typer.Option(False, "--chunked", help="Use chunked transfer encoding"),
+    pad_requests: bool = typer.Option(False, "--pad-requests", help="Pad request bodies"),
+    param_pollution: bool = typer.Option(False, "--param-pollution", help="HTTP parameter pollution"),
+    normalize_paths: bool = typer.Option(False, "--normalize-paths", help="Vary request paths"),
+    doh: str | None = typer.Option(None, "--doh", help="DNS-over-HTTPS resolver URL"),
+    # Phase 4
+    tls_rotate: bool = typer.Option(False, "--tls-rotate", help="Rotate TLS/JA3 fingerprints (needs curl_cffi)"),
     output: Path | None = typer.Option(None, "--output", help="Write JSON report to path"),
 ) -> None:
     """Run reconnaissance only."""
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, False, False, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, False, False, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth, waf_evasion=waf_evasion, jitter=jitter, rotate_ua=rotate_ua, proxy_pool=proxy_pool, randomize_headers=randomize_headers, rotate_referer=rotate_referer, human_timing=human_timing, payload_encoding=payload_encoding, waf_adapt=waf_adapt, auto_backoff=auto_backoff, captcha_action=captcha_action, rotate_protocol=rotate_protocol, chunked=chunked, pad_requests=pad_requests, param_pollution=param_pollution, normalize_paths=normalize_paths, doh=doh, tls_rotate=tls_rotate)
     asyncio.run(_run_scan(target, "recon", settings, output, modules))
 
 
@@ -144,11 +230,33 @@ def scan(
     modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
     i_have_permission: bool = typer.Option(False, "--i-have-permission", help="Acknowledge authorization"),
     stealth: bool = typer.Option(False, "--stealth", help="Use browser User-Agent to blend in"),
+    # WAF evasion
+    waf_evasion: bool = typer.Option(False, "--waf-evasion", help="Enable all WAF evasion techniques"),
+    jitter: float = typer.Option(0.0, "--jitter", help="Random delay per request (seconds)"),
+    rotate_ua: bool = typer.Option(False, "--rotate-ua", help="Rotate User-Agent per request"),
+    proxy_pool: str | None = typer.Option(None, "--proxy-pool", help="Comma-separated proxy URLs for rotation"),
+    randomize_headers: bool = typer.Option(False, "--randomize-headers", help="Randomize request headers"),
+    rotate_referer: bool = typer.Option(False, "--rotate-referer", help="Rotate Referer header"),
+    human_timing: bool = typer.Option(False, "--human-timing", help="Human-like request timing patterns"),
+    # Phase 2
+    payload_encoding: str | None = typer.Option(None, "--payload-encoding", help="Payload encoding: url,double_url,case,comments,unicode,hex,all"),
+    waf_adapt: bool = typer.Option(False, "--waf-adapt", help="Auto-adapt payloads to detected WAF"),
+    auto_backoff: bool = typer.Option(False, "--auto-backoff", help="Auto-pause on block detection"),
+    captcha_action: str | None = typer.Option(None, "--captcha-action", help="CAPTCHA handling: skip|pause|abort"),
+    # Phase 3
+    rotate_protocol: bool = typer.Option(False, "--rotate-protocol", help="Alternate HTTP/1.1 and HTTP/2"),
+    chunked: bool = typer.Option(False, "--chunked", help="Use chunked transfer encoding"),
+    pad_requests: bool = typer.Option(False, "--pad-requests", help="Pad request bodies"),
+    param_pollution: bool = typer.Option(False, "--param-pollution", help="HTTP parameter pollution"),
+    normalize_paths: bool = typer.Option(False, "--normalize-paths", help="Vary request paths"),
+    doh: str | None = typer.Option(None, "--doh", help="DNS-over-HTTPS resolver URL"),
+    # Phase 4
+    tls_rotate: bool = typer.Option(False, "--tls-rotate", help="Rotate TLS/JA3 fingerprints (needs curl_cffi)"),
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
     """Run vulnerability scan."""
     aggressive = mode.lower() == "aggressive"
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, aggressive, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, aggressive, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth, waf_evasion=waf_evasion, jitter=jitter, rotate_ua=rotate_ua, proxy_pool=proxy_pool, randomize_headers=randomize_headers, rotate_referer=rotate_referer, human_timing=human_timing, payload_encoding=payload_encoding, waf_adapt=waf_adapt, auto_backoff=auto_backoff, captcha_action=captcha_action, rotate_protocol=rotate_protocol, chunked=chunked, pad_requests=pad_requests, param_pollution=param_pollution, normalize_paths=normalize_paths, doh=doh, tls_rotate=tls_rotate)
     if mode.lower() in ("active", "aggressive") and not settings.permission_acknowledged:
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
@@ -172,10 +280,32 @@ def roast(
     modules: str | None = typer.Option(None, "--modules", help="Comma-separated module names to run (overrides mode)"),
     i_have_permission: bool = typer.Option(False, "--i-have-permission"),
     stealth: bool = typer.Option(False, "--stealth", help="Use browser User-Agent to blend in"),
+    # WAF evasion
+    waf_evasion: bool = typer.Option(False, "--waf-evasion", help="Enable all WAF evasion techniques"),
+    jitter: float = typer.Option(0.0, "--jitter", help="Random delay per request (seconds)"),
+    rotate_ua: bool = typer.Option(False, "--rotate-ua", help="Rotate User-Agent per request"),
+    proxy_pool: str | None = typer.Option(None, "--proxy-pool", help="Comma-separated proxy URLs for rotation"),
+    randomize_headers: bool = typer.Option(False, "--randomize-headers", help="Randomize request headers"),
+    rotate_referer: bool = typer.Option(False, "--rotate-referer", help="Rotate Referer header"),
+    human_timing: bool = typer.Option(False, "--human-timing", help="Human-like request timing patterns"),
+    # Phase 2
+    payload_encoding: str | None = typer.Option(None, "--payload-encoding", help="Payload encoding: url,double_url,case,comments,unicode,hex,all"),
+    waf_adapt: bool = typer.Option(False, "--waf-adapt", help="Auto-adapt payloads to detected WAF"),
+    auto_backoff: bool = typer.Option(False, "--auto-backoff", help="Auto-pause on block detection"),
+    captcha_action: str | None = typer.Option(None, "--captcha-action", help="CAPTCHA handling: skip|pause|abort"),
+    # Phase 3
+    rotate_protocol: bool = typer.Option(False, "--rotate-protocol", help="Alternate HTTP/1.1 and HTTP/2"),
+    chunked: bool = typer.Option(False, "--chunked", help="Use chunked transfer encoding"),
+    pad_requests: bool = typer.Option(False, "--pad-requests", help="Pad request bodies"),
+    param_pollution: bool = typer.Option(False, "--param-pollution", help="HTTP parameter pollution"),
+    normalize_paths: bool = typer.Option(False, "--normalize-paths", help="Vary request paths"),
+    doh: str | None = typer.Option(None, "--doh", help="DNS-over-HTTPS resolver URL"),
+    # Phase 4
+    tls_rotate: bool = typer.Option(False, "--tls-rotate", help="Rotate TLS/JA3 fingerprints (needs curl_cffi)"),
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
     """Run full recon + aggressive scan."""
-    settings = _settings_from_options(rate, concurrency, proxy, timeout, True, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth)
+    settings = _settings_from_options(rate, concurrency, proxy, timeout, True, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth, waf_evasion=waf_evasion, jitter=jitter, rotate_ua=rotate_ua, proxy_pool=proxy_pool, randomize_headers=randomize_headers, rotate_referer=rotate_referer, human_timing=human_timing, payload_encoding=payload_encoding, waf_adapt=waf_adapt, auto_backoff=auto_backoff, captcha_action=captcha_action, rotate_protocol=rotate_protocol, chunked=chunked, pad_requests=pad_requests, param_pollution=param_pollution, normalize_paths=normalize_paths, doh=doh, tls_rotate=tls_rotate)
     if not settings.permission_acknowledged:
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
@@ -333,6 +463,24 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
             user_agent=settings.user_agent,
             stealth=settings.stealth,
             stealth_user_agents=settings.stealth_user_agents,
+            jitter=settings.jitter,
+            rotate_user_agent=settings.rotate_user_agent,
+            ua_rotation_interval=settings.ua_rotation_interval,
+            proxy_pool=settings.proxy_pool,
+            randomize_headers=settings.randomize_headers,
+            rotate_referer=settings.rotate_referer,
+            use_cookies=settings.use_cookies,
+            human_timing=settings.human_timing,
+            auto_backoff=settings.auto_backoff,
+            backoff_cooldown=settings.backoff_cooldown,
+            captcha_action=settings.captcha_action,
+            rotate_protocol=settings.rotate_protocol,
+            chunked_encoding=settings.chunked_encoding,
+            pad_requests=settings.pad_requests,
+            param_pollution=settings.param_pollution,
+            normalize_paths=settings.normalize_paths,
+            doh_resolver=settings.doh_resolver,
+            tls_rotate=settings.tls_rotate,
         )
         result = await engine.run(target, mode, settings, names, http_factory)
         progress.update(task, description="Done")

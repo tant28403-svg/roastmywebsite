@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 import time
 
+from ..core.encoding import encode_payloads, encode_tuple_payloads
 from ..core.models import Finding, Severity
+from ..core.waf_detect import detect_waf, waf_adapt_payload
 
 # Error-based SQL injection signatures (specific SQL error messages)
 ERROR_SIGNATURES = [
@@ -78,7 +80,16 @@ async def _get_baseline_timing(ctx, base: str, param: str) -> tuple[float, float
 async def _probe_error_based(ctx, base: str, param: str) -> bool:
     """Error-based SQL injection detection."""
     found = False
-    for payload in ERROR_PAYLOADS:
+    encoding = getattr(ctx.settings, "payload_encoding", "none")
+    payloads = encode_payloads(ERROR_PAYLOADS, encoding)
+    if getattr(ctx.settings, "waf_adapt", False) and getattr(ctx, "waf_type", None):
+        adapted = []
+        for p in payloads:
+            adapted.extend(waf_adapt_payload(p, ctx.waf_type))
+        # Deduplicate
+        seen = set()
+        payloads = [p for p in adapted if not (p in seen or seen.add(p))]
+    for payload in payloads:
         if not ctx.can_request():
             return found
         ctx.increment()
@@ -117,7 +128,9 @@ async def _probe_error_based(ctx, base: str, param: str) -> bool:
 async def _probe_boolean_based(ctx, base: str, param: str) -> bool:
     """Boolean-based blind SQL injection detection with canary verification."""
     found = False
-    for true_p, false_p in BOOLEAN_PAYLOADS:
+    encoding = getattr(ctx.settings, "payload_encoding", "none")
+    bool_payloads = encode_tuple_payloads(BOOLEAN_PAYLOADS, encoding)
+    for true_p, false_p in bool_payloads:
         if not ctx.can_request():
             return found
         # True condition
@@ -180,7 +193,9 @@ async def _probe_time_based(ctx, base: str, param: str) -> bool:
         return False
 
     found = False
-    for payload, delay in TIME_PAYLOADS:
+    encoding = getattr(ctx.settings, "payload_encoding", "none")
+    time_payloads = encode_tuple_payloads(TIME_PAYLOADS, encoding)
+    for payload, delay in time_payloads:
         if not ctx.can_request():
             return found
         ctx.increment()
@@ -226,7 +241,9 @@ async def _probe_time_based(ctx, base: str, param: str) -> bool:
 async def _probe_union_based(ctx, base: str, param: str) -> bool:
     """Union-based SQL injection detection with verification."""
     found = False
-    for payload in UNION_PAYLOADS:
+    encoding = getattr(ctx.settings, "payload_encoding", "none")
+    union_payloads = encode_payloads(UNION_PAYLOADS, encoding)
+    for payload in union_payloads:
         if not ctx.can_request():
             return found
         ctx.increment()
@@ -283,5 +300,11 @@ async def _probe_param(ctx, base: str, param: str) -> None:
 
 async def run(ctx) -> None:
     base = f"https://{ctx.target}"
+    # Detect WAF on first request
+    try:
+        resp = await ctx.http.get(base, timeout=ctx.settings.timeout)
+        ctx.waf_type = detect_waf(resp.headers, resp.text)
+    except Exception:
+        ctx.waf_type = None
     tasks = [_probe_param(ctx, base, param) for param in PARAMS]
     await asyncio.gather(*tasks, return_exceptions=True)

@@ -57,6 +57,29 @@ class ScanSettings:
     nuclei_tags: str | None = None
     nuclei_severity: str | None = None
     nuclei_exclude_tags: str | None = None
+    # WAF evasion
+    waf_evasion: bool = False
+    jitter: float = 0.0
+    rotate_user_agent: bool = False
+    ua_rotation_interval: int = 1
+    proxy_pool: list[str] = field(default_factory=list)
+    randomize_headers: bool = False
+    rotate_referer: bool = False
+    rotate_protocol: bool = False
+    chunked_encoding: bool = False
+    use_cookies: bool = True
+    human_timing: bool = False
+    payload_encoding: str = "none"
+    waf_adapt: bool = False
+    fragment_payloads: bool = False
+    auto_backoff: bool = False
+    backoff_cooldown: int = 30
+    captcha_action: str = "skip"
+    pad_requests: bool = False
+    param_pollution: bool = False
+    normalize_paths: bool = False
+    tls_rotate: bool = False
+    doh_resolver: str | None = None
 
 
 def load_config(path: Path | None = None) -> ScanSettings:
