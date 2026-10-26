@@ -7,6 +7,9 @@ from ..core.encoding import encode_payloads, encode_tuple_payloads
 from ..core.models import Finding, Severity
 from ..core.waf_detect import detect_waf, waf_adapt_payload
 
+ORANGE = "\033[38;5;208m"
+RESET = "\033[0m"
+
 # Error-based SQL injection signatures (specific SQL error messages)
 ERROR_SIGNATURES = [
     "sql syntax", "mysql", "postgres", "sqlite", "ora-", "unclosed quotation mark",
@@ -127,7 +130,7 @@ async def _probe_error_based(ctx, base: str, param: str) -> bool:
             if any(sig in verify_body for sig in new_errors):
                 ctx.add_finding(Finding(
                     id=f"sqli-error-{param}",
-                    title=f"Potential SQL injection (error-based) via '{param}'",
+                    title=f"{ORANGE}Potential SQL injection{RESET} (error-based) via '{param}'",
                     severity=Severity.HIGH,
                     confidence=0.85,
                     asset=f"{base}?{param}={payload}",
@@ -186,7 +189,7 @@ async def _probe_boolean_based(ctx, base: str, param: str) -> bool:
             continue  # Non-deterministic response, skip
         ctx.add_finding(Finding(
             id=f"sqli-boolean-{param}",
-            title=f"Potential SQL injection (boolean-based blind) via '{param}'",
+            title=f"{ORANGE}Potential SQL injection{RESET} (boolean-based blind) via '{param}'",
             severity=Severity.HIGH,
             confidence=0.7,
             asset=f"{base}?{param}={true_p}",
@@ -240,7 +243,7 @@ async def _probe_time_based(ctx, base: str, param: str) -> bool:
                 if elapsed3 >= threshold - 0.5:
                     ctx.add_finding(Finding(
                         id=f"sqli-time-{param}",
-                        title=f"Potential SQL injection (time-based blind) via '{param}'",
+                        title=f"{ORANGE}Potential SQL injection{RESET} (time-based blind) via '{param}'",
                         severity=Severity.HIGH,
                         confidence=0.75,
                         asset=f"{base}?{param}={payload}",
@@ -285,7 +288,7 @@ async def _probe_union_based(ctx, base: str, param: str) -> bool:
             if verify_resp.text == resp.text:
                 ctx.add_finding(Finding(
                     id=f"sqli-union-{param}",
-                    title=f"Potential SQL injection (union-based) via '{param}'",
+                    title=f"{ORANGE}Potential SQL injection{RESET} (union-based) via '{param}'",
                     severity=Severity.HIGH,
                     confidence=0.65,
                     asset=f"{base}?{param}={payload}",
@@ -376,7 +379,7 @@ async def _probe_header_sqli(ctx, base: str) -> bool:
             if new_errors:
                 ctx.add_finding(Finding(
                     id=f"sqli-header-{header.lower().replace('-', '_')}",
-                    title=f"Potential SQL injection via '{header}' header",
+                    title=f"{ORANGE}Potential SQL injection{RESET} via '{header}' header",
                     severity=Severity.HIGH,
                     confidence=0.75,
                     asset=base,
@@ -493,7 +496,7 @@ async def _probe_json_body(ctx, base):
                 safe_id = endpoint.strip("/").replace("/", "-")
                 ctx.add_finding(Finding(
                     id="sqli-json-" + safe_id,
-                    title="Potential SQL injection via JSON body on " + endpoint,
+                    title=f"{ORANGE}Potential SQL injection{RESET} via JSON body on {endpoint}",
                     severity=Severity.HIGH,
                     confidence=0.8,
                     asset=base + endpoint,
@@ -584,7 +587,7 @@ async def _probe_cookie_sqli(ctx, base):
         if new_errors:
             ctx.add_finding(Finding(
                 id='sqli-cookie',
-                title='Potential SQL injection via Cookie header',
+                title=f"{ORANGE}Potential SQL injection{RESET} via Cookie header",
                 severity=Severity.HIGH,
                 confidence=0.75,
                 asset=base,
