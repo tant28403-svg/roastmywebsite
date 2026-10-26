@@ -15,6 +15,12 @@ from .waf_detect import is_blocked, is_captcha
 
 logger = logging.getLogger("roastmywebsite.http")
 
+# ANSI color codes
+RED = "\033[31m"
+YELLOW = "\033[33m"
+CYAN = "\033[36m"
+RESET = "\033[0m"
+
 # Browser-realistic header variants for randomization
 _ACCEPT_VARIANTS = [
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -416,7 +422,7 @@ class HttpClient:
                     self._consecutive_blocks += 1
                     if self._consecutive_blocks >= 3:
                         logger.warning(
-                            "Block detected (status=%d). Backing off for %ds...",
+                            f"{RED}Block detected{RESET} (status={YELLOW}%d{RESET}). Backing off for {CYAN}%ds{RESET}...",
                             response.status_code, self.backoff_cooldown,
                         )
                         new_rate = max(0.5, self.rate_limit * 0.5)

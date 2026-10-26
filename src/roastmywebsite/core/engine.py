@@ -11,6 +11,34 @@ from .events import EventBus
 from .models import Asset, Finding, ScanResult
 from .scope import ScopeConfig
 
+# ANSI color codes
+RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RED = "\033[31m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+BLUE = "\033[34m"
+MAGENTA = "\033[35m"
+CYAN = "\033[36m"
+WHITE = "\033[37m"
+ORANGE = "\033[38;5;208m"
+GRAY = "\033[90m"
+
+
+def _sev_color(severity) -> str:
+    """Return ANSI color code for finding severity."""
+    sev = severity.value if hasattr(severity, 'value') else str(severity).lower()
+    if sev == "critical":
+        return RED
+    if sev == "high":
+        return ORANGE
+    if sev == "medium":
+        return YELLOW
+    if sev == "low":
+        return BLUE
+    return GRAY
+
 
 @dataclass
 class ModuleContext:
@@ -121,14 +149,16 @@ class ScanEngine:
                 await asyncio.gather(*[_run_module(name) for name in batch], return_exceptions=True)
             finished = datetime.utcnow()
             # End-of-scan console summary so results aren't lost behind proxychains / scrolling
-            print("\n========== SCAN SUMMARY ==========")
-            print(f"Target: {target}  Mode: {mode}  Scan ID: {scan_id}")
-            print(f"Requests: {ctx.request_count}  Assets: {len(ctx.assets)}  Findings: {len(ctx.findings)}")
+            print(f"\n{BOLD}{CYAN}========== SCAN SUMMARY =========={RESET}")
+            print(f"{WHITE}Target: {target}  Mode: {mode}  Scan ID: {scan_id}{RESET}")
+            print(f"{GREEN}Requests: {ctx.request_count}  Assets: {len(ctx.assets)}  Findings: {len(ctx.findings)}{RESET}")
             for a in ctx.assets:
-                print(f"  [ASSET] {a}")
+                print(f"  {BLUE}[ASSET]{RESET} {a}")
             for f in ctx.findings:
-                print(f"  [FINDING] {f.id} | {f.title} | severity={f.severity.value if hasattr(f.severity,'value') else f.severity} | asset={f.asset} | module={f.module}")
-            print("==================================\n")
+                color = _sev_color(f.severity)
+                sev_str = f.severity.value if hasattr(f.severity, 'value') else f.severity
+                print(f"  {color}[FINDING]{RESET} {f.id} | {f.title} | severity={color}{sev_str}{RESET} | asset={f.asset} | module={f.module}")
+            print(f"{BOLD}{CYAN}=================================={RESET}\n")
             result = ScanResult(
                 id=scan_id,
                 target=target,
