@@ -453,7 +453,15 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
         def on_module_start(name) -> None:
             progress.update(task, description=f"Running {name}...")
 
+        def on_module_done(name) -> None:
+            console.print(f"[green]✓ Completed:[/green] {name}")
+
+        def on_module_error(data) -> None:
+            console.print(f"[red]✗ Module '{data['module']}' failed:[/red] {data['error']}")
+
         engine.event_bus.on("module_start", on_module_start)
+        engine.event_bus.on("module_done", on_module_done)
+        engine.event_bus.on("module_error", on_module_error)
 
         http_factory = lambda: HttpClient(
             rate_limit=settings.rate_limit,

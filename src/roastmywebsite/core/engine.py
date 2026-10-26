@@ -115,7 +115,7 @@ class ScanEngine:
                 self.event_bus.emit("module_done", name)
 
             # Group modules into batches to limit concurrency and avoid overwhelming the target
-            batch_size = 4
+            batch_size = 1
             for i in range(0, len(module_names), batch_size):
                 batch = module_names[i:i + batch_size]
                 await asyncio.gather(*[_run_module(name) for name in batch], return_exceptions=True)
