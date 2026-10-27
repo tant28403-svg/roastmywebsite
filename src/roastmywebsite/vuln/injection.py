@@ -145,6 +145,15 @@ async def _probe_boolean_based(ctx, base: str, param: str) -> bool:
     """Boolean-based blind SQL injection detection with canary verification."""
     found = False
     encoding = getattr(ctx.settings, "payload_encoding", "none")
+    # Control check: benign differing values should not produce a large response diff
+    if ctx.can_request():
+        ctx.increment()
+        ctrl1 = await ctx.http.get(base, params={param: "1"}, timeout=ctx.settings.timeout)
+        if ctx.can_request():
+            ctx.increment()
+            ctrl2 = await ctx.http.get(base, params={param: "2"}, timeout=ctx.settings.timeout)
+            if abs(len(ctrl1.text or "") - len(ctrl2.text or "")) >= MIN_DIFF_BYTES:
+                return found
     bool_payloads = encode_tuple_payloads(BOOLEAN_PAYLOADS, encoding)
     for true_p, false_p in bool_payloads:
         if not ctx.can_request():

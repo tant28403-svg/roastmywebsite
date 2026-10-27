@@ -442,7 +442,7 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
     console.print(f"[bold]🔥 Roasting {target}[/bold] (mode={mode}, modules={len(names)})")
 
     def on_finding(finding) -> None:
-        color = {"critical": "red", "high": "orange", "medium": "yellow", "low": "blue", "info": "grey"}.get(finding.severity.value, "white")
+        color = {"critical": "red", "high": "bright_red", "medium": "yellow", "low": "blue", "info": "grey"}.get(finding.severity.value, "white")
         console.print(f"[{color}]{finding.severity.value.upper()}[/{color}] {finding.title} ({finding.asset})")
 
     engine.event_bus.on("finding", on_finding)
