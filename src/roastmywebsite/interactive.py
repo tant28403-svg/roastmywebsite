@@ -357,6 +357,18 @@ def run_interactive() -> None:
 
     modules_str = ",".join(selected_modules) if selected_modules else None
 
+    # Warn about optional dependencies / config that can make modules no-op
+    mods_to_check = selected_modules or []
+    if not mods_to_check and mode_name in ("aggressive", "roast"):
+        mods_to_check = ["browser", "dom_xss", "dns_oob"]
+    if "browser" in mods_to_check or "dom_xss" in mods_to_check:
+        try:
+            import playwright.async_api  # noqa: F401
+        except Exception:
+            print("Warning: Playwright not installed; 'browser' and 'dom_xss' modules will skip.")
+    if "dns_oob" in mods_to_check and not getattr(settings, "oob_domain", None):
+        print("Warning: oob_domain not configured; 'dns_oob' module will skip.")
+
     print()
     print(f"Starting scan on {target} (mode={run_mode}, rate={rate}, concurrency={concurrency})...")
     if selected_modules:
