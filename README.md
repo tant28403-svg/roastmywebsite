@@ -11,7 +11,7 @@
 > ```
 > If both the flagged file and the fake file return the same HTML page, it's likely a soft 404 (false positive). Only act if the flagged file returns actual file contents (e.g. raw SQL, keys, or credentials).
 
-An open-source Python tool for authorised website vulnerability assessment and OSINT reconnaissance.
+An open-source Python tool for authorised website vulnerability assessment and OSINT reconnaissance. It runs reconnaissance and vulnerability checks, stores scan results in SQLite, and exports reports in HTML, JSON, Markdown, and SARIF.
 
 Use it only on systems you own or have explicit written permission to test. Unauthorised scanning may be illegal.
 
@@ -19,26 +19,23 @@ Use it only on systems you own or have explicit written permission to test. Unau
 > ## **Disclaimer**
 > **This tool is for educational use and authorised security testing only.** The author is not responsible or liable for any misuse, damage, or illegal activity caused by this tool. Users are solely responsible for ensuring they have proper authorization before scanning any system. This tool is provided "as is" without warranty of any kind.
 
+## Overview
+
+- **Version:** 0.4.0
+- **Language:** Python 3.10–3.12 (do not use 3.13+)
+- **Primary platform:** Linux
+- **Entry points:** `roastmywebsite` or `rmw`
+- **Storage:** SQLite at `~/.local/share/roastmywebsite/roastmywebsite.db`
+- **Reports:** `~/.local/share/roastmywebsite/reports/`
+
 ## Requirements
 
-- Python 3.10 to 3.12 (do not use 3.13+)
-- Linux is the primary supported platform
-- A virtual environment so the tool does not modify your system Python
+- Python 3.10+ (3.10 to 3.12 recommended)
+- pip
+- venv
+- git
+- Build tools (`lxml` and `cryptography` compile C extensions)
 - Do not run as root
-
-## Install these first
-
-Missing prerequisites are the most common cause of errors on a fresh machine.
-
-### Required
-
-| Requirement | Why |
-|---|---|
-| Python 3.10+ | The tool is written in Python |
-| pip | Installs Python dependencies |
-| venv | Isolates dependencies from system Python |
-| git | Clones the repository |
-| Build tools | `lxml` and `cryptography` compile C extensions |
 
 Install all of them on Debian, Ubuntu, or Kali:
 
@@ -79,58 +76,27 @@ sudo apt install -y nmap naabu nuclei ffuf subfinder amass
 Browser checks need a separate Chromium download:
 
 ```bash
-pip install -e ".[browser]"
+pip install playwright
 playwright install chromium
 ```
 
-WAF evasion TLS rotation needs curl_cffi:
-
-```bash
-pip install -e ".[waf]"
-```
-
-## Install
+## Installation
 
 ```bash
 git clone https://github.com/tant28403-svg/roastmywebsite.git
 cd roastmywebsite
-
 python3 -m venv .venv
 source .venv/bin/activate
-
 pip install -e .
 ```
 
-Verify the setup:
+Optional extras:
 
 ```bash
-roastmywebsite doctor
+pip install -e ".[browser]"   # Playwright
+pip install -e ".[waf]"       # curl_cffi for TLS rotation
+pip install -e ".[dev]"       # pytest, ruff, mypy
 ```
-
-Anything reported as `missing` is optional. The tool still runs.
-
-If `roastmywebsite` is not found, the virtual environment is not active, or use one of:
-
-```bash
-python -m roastmywebsite doctor
-rmw doctor
-```
-
-## Interactive mode
-
-Run the tool with no arguments to launch an interactive numbered menu:
-
-```bash
-roastmywebsite
-```
-
-Or explicitly:
-
-```bash
-roastmywebsite interactive
-```
-
-The menu lets you pick scan type, modules, port scanner, subdomain tool, nuclei filters, rate limit, concurrency, proxy, stealth mode, and WAF evasion settings by entering numbers. All existing CLI flags still work for scripting.
 
 ## Use
 
@@ -170,6 +136,22 @@ roastmywebsite scan example.com --modules injection,xss,ssrf,idor --mode active 
 | `roast` | `roastmywebsite roast example.com --i-have-permission` | Full aggressive pipeline |
 
 For `active`, `aggressive`, and `roast`, the tool asks you to confirm you have permission unless you pass `--i-have-permission`.
+
+## Interactive mode
+
+Run the tool with no arguments to launch an interactive numbered menu:
+
+```bash
+roastmywebsite
+```
+
+Or explicitly:
+
+```bash
+roastmywebsite interactive
+```
+
+The menu lets you pick scan type, modules, port scanner, subdomain tool, nuclei filters, rate limit, concurrency, proxy, stealth mode, and WAF evasion settings by entering numbers. All existing CLI flags still work for scripting.
 
 ## Scan options
 
@@ -294,12 +276,41 @@ If you want to hide your DNS/IP from the target or reduce ISP visibility, you **
 - The built-in `--proxy` option only proxies HTTP(S) traffic (via httpx). It does **not** tunnel direct DNS connections or most external tool traffic.
 - To minimize leaks without tunneling everything, skip `dns` if not needed, disable reverse DNS on port scans, prefer passive sources (`ct`, `wayback`), and host your OOB callback server on a remote VPS.
 
+### Recommended: use proxychains to avoid blocks
+
+To reduce the chance of being blocked or rate-limited by the target, running through `proxychains4` with a SOCKS5 proxy is recommended.
+
+1. **Configure proxychains** (`/etc/proxychains4.conf` or `~/.proxychains/proxychains.conf`):
+   ```ini
+   random_chain
+   proxy_dns
+   [ProxyList]
+   socks5  127.0.0.1 1080
+   ```
+   - Enable `random_chain` (or `dynamic_chain`) for automatic failover/rotation.
+   - Add your SOCKS5 proxy (e.g. an SSH tunnel: `ssh -D 1080 -N user@vps`).
+
+2. **Run the tool through proxychains**:
+   ```bash
+   proxychains4 roastmywebsite scan example.com --mode aggressive --i-have-permission
+   ```
+   or for the interactive menu:
+   ```bash
+   proxychains4 roastmywebsite
+   ```
+
+3. **Notes**
+   - Use `socks5h` / `proxy_dns` so DNS resolves remotely (avoids local DNS leaks).
+   - External tools (nmap, nuclei, etc.) may still leak or behave oddly under proxychains.
+   - Performance will be slower; consider lowering `--rate` and `--concurrency`.
+
 ## Commands
 
 | Command | Purpose |
 |---|---|
 | `doctor` | Check Python, configuration paths, and external tools. |
 | `config` | Create or show the local configuration file. |
+| `interactive` | Launch the interactive numbered menu. |
 | `recon` | Run reconnaissance modules only. |
 | `scan` | Run a scan in `safe`, `active`, or `aggressive` mode. |
 | `roast` | Run the full recon plus aggressive pipeline. |
@@ -383,7 +394,7 @@ Stored at `~/.config/roastmywebsite/config.yaml`. Create it with `roastmywebsite
 
 ```yaml
 rate_limit: 5.0
-max_requests: 5000
+max_requests: 20000
 timeout: 10.0
 concurrency: 20
 
@@ -442,6 +453,8 @@ Lower the rate and raise the timeout:
 roastmywebsite scan example.com --mode safe --rate 1 --timeout 30
 ```
 
+Or run through proxychains (see above) to avoid IP blocks.
+
 ### Where are my results stored?
 
 ```text
@@ -454,3 +467,7 @@ The config lives at `~/.config/roastmywebsite/config.yaml`.
 ## License
 
 MIT — see LICENSE.
+```
+
+Then commit/push.<|end|><|start|>start_of_turn<|message|>assistant to=write<|channel|>analysis <|constrain|>xml<|message|><rfl:parameter name="path">
+C:\Users\Tristan\Desktop\Project\Vulnerability finder\README.md
