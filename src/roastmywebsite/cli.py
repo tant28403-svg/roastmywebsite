@@ -451,7 +451,9 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
         task = progress.add_task("Scanning...", total=None)
 
         def on_module_start(name) -> None:
+            console.print(f"[cyan]▶ Running:[/cyan] {name}")
             progress.update(task, description=f"Running {name}...")
+            progress.refresh()
 
         def on_module_done(name) -> None:
             console.print(f"[green]✓ Completed:[/green] {name}")
