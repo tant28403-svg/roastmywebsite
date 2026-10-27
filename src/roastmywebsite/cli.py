@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import shutil
+import time
+from typing import Any
 from pathlib import Path
 
 import typer
@@ -465,20 +467,52 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         task = progress.add_task("Scanning...", total=None)
 
+        _ticker: list[asyncio.Task | None] = [None]
+        _state: dict[str, Any] = {}
+
         def on_module_start(name) -> None:
+            _state.clear()
+            _state.update({"name": name, "current": 0, "total": 0, "started": time.monotonic()})
             console.print(f"[cyan]▶ Running: {name}[/cyan]")
-            progress.update(task, description=f"[cyan]Running {name}...[/cyan]")
+            progress.update(task, description=f"[cyan]Running {name}... (0s)[/cyan]")
             progress.refresh()
 
+            async def _tick() -> None:
+                while True:
+                    await asyncio.sleep(1)
+                    elapsed = int(time.monotonic() - _state["started"])
+                    desc = f"[cyan]Running {name}... ({elapsed}s)[/cyan]"
+                    total = _state.get("total", 0)
+                    if total:
+                        current = _state.get("current", 0)
+                        pct = int(current / total * 100)
+                        desc = f"[cyan]Running {name}... {pct}% ({current}/{total}) ({elapsed}s)[/cyan]"
+                    progress.update(task, description=desc)
+                    progress.refresh()
+
+            _ticker[0] = asyncio.ensure_future(_tick())
+
+        def on_module_progress(data) -> None:
+            if data.get("module") == _state.get("name"):
+                _state["current"] = data.get("current", _state.get("current", 0))
+                _state["total"] = data.get("total", _state.get("total", 0))
+
         def on_module_done(name) -> None:
+            if _ticker[0] is not None:
+                _ticker[0].cancel()
+                _ticker[0] = None
             console.print(f"[green]✓ Completed: {name}[/green]")
 
         def on_module_error(data) -> None:
+            if _ticker[0] is not None:
+                _ticker[0].cancel()
+                _ticker[0] = None
             console.print(f"[red]✗ Module '{data['module']}' failed: {data['error']}[/red]")
 
         engine.event_bus.on("module_start", on_module_start)
         engine.event_bus.on("module_done", on_module_done)
         engine.event_bus.on("module_error", on_module_error)
+        engine.event_bus.on("module_progress", on_module_progress)
 
         http_factory = lambda: HttpClient(
             rate_limit=settings.rate_limit,

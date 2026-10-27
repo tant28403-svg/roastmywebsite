@@ -424,7 +424,12 @@ async def run(ctx) -> None:
     # XML/XXE injection
     await _probe_xml(ctx, base)
 
-    tasks = [_probe_param(ctx, base, param) for param in PARAMS]
+    _completed = [0]
+    async def _probe_with_progress(param):
+        await _probe_param(ctx, base, param)
+        _completed[0] += 1
+        ctx.event_bus.emit("module_progress", {"module": "injection", "current": _completed[0], "total": len(PARAMS)})
+    tasks = [_probe_with_progress(param) for param in PARAMS]
     await asyncio.gather(*tasks, return_exceptions=True)
 
     # NoSQL injection (run on a subset of params to save requests)
