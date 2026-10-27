@@ -255,7 +255,7 @@ def scan(
     output: Path | None = typer.Option(None, "--output"),
 ) -> None:
     """Run vulnerability scan."""
-    aggressive = mode.lower() == "aggressive"
+    aggressive = mode.lower() in ("aggressive", "roast")
     settings = _settings_from_options(rate, concurrency, proxy, timeout, aggressive, i_have_permission, ports_tool, subdomain_tool, nuclei_templates, nuclei_tags, nuclei_severity, nuclei_exclude_tags, stealth, waf_evasion=waf_evasion, jitter=jitter, rotate_ua=rotate_ua, proxy_pool=proxy_pool, randomize_headers=randomize_headers, rotate_referer=rotate_referer, human_timing=human_timing, payload_encoding=payload_encoding, waf_adapt=waf_adapt, auto_backoff=auto_backoff, captcha_action=captcha_action, rotate_protocol=rotate_protocol, chunked=chunked, pad_requests=pad_requests, param_pollution=param_pollution, normalize_paths=normalize_paths, doh=doh, tls_rotate=tls_rotate)
     if mode.lower() in ("active", "aggressive") and not settings.permission_acknowledged:
         if not typer.confirm("Do you own or have written permission to test this target?"):
@@ -440,6 +440,15 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
         names = modules_for_mode(mode if mode != "roast" else "aggressive")
 
     console.print(f"[bold]🔥 Roasting {target}[/bold] (mode={mode}, modules={len(names)})")
+
+    # Warn about optional dependencies / config that can make modules no-op
+    try:
+        import playwright.async_api  # noqa: F401
+    except Exception:
+        if any(n in names for n in ("browser", "dom_xss")):
+            console.print("[yellow]Warning: Playwright not installed; 'browser' and 'dom_xss' modules will skip.[/yellow]")
+    if any(n == "dns_oob" for n in names) and not getattr(settings, "oob_domain", None):
+        console.print("[yellow]Warning: oob_domain not configured; 'dns_oob' module will skip.[/yellow]")
 
     def on_finding(finding) -> None:
         color = {"critical": "red", "high": "bright_red", "medium": "yellow", "low": "blue", "info": "grey"}.get(finding.severity.value, "white")
