@@ -379,4 +379,7 @@ def run_interactive() -> None:
 
     from .cli import _run_scan
 
-    asyncio.run(_run_scan(target, run_mode, settings, None, modules_str))
+    try:
+        asyncio.run(_run_scan(target, run_mode, settings, None, modules_str))
+    except KeyboardInterrupt:
+        print("\nScan cancelled by user.")

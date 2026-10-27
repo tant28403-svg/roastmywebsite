@@ -261,7 +261,10 @@ def scan(
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
         settings.permission_acknowledged = True
-    asyncio.run(_run_scan(target, mode, settings, output, modules))
+    try:
+        asyncio.run(_run_scan(target, mode, settings, output, modules))
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Scan cancelled by user.[/yellow]")
 
 
 @app.command()
@@ -310,7 +313,10 @@ def roast(
         if not typer.confirm("Do you own or have written permission to test this target?"):
             raise typer.Abort()
         settings.permission_acknowledged = True
-    asyncio.run(_run_scan(target, "roast", settings, output, modules))
+    try:
+        asyncio.run(_run_scan(target, "roast", settings, output, modules))
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Scan cancelled by user.[/yellow]")
 
 
 @app.command()
