@@ -12,6 +12,11 @@ h1, h2 { color: #f8fafc; }
 .sev-medium { color: #eab308; }
 .sev-low { color: #3b82f6; }
 .sev-info { color: #94a3b8; }
+.status-200 { color: #22c55e; }
+.status-201 { color: #22c55e; }
+.status-301, .status-302 { color: #eab308; }
+.status-401, .status-403 { color: #f97316; }
+.status-404 { color: #ef4444; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 0.5rem; border-bottom: 1px solid #334155; text-align: left; vertical-align: top; }
 .badge { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; }
@@ -64,6 +69,23 @@ pre { white-space: pre-wrap; word-break: break-word; background: #0b1120; paddin
 {% endif %}
 </div>
 {% endfor %}
+
+<div class="card">
+<h2>Assets</h2>
+<table>
+<thead><tr><th>Value</th><th>Type</th><th>Source</th><th>Status</th></tr></thead>
+<tbody>
+{% for a in result.assets %}
+<tr>
+<td><code>{{ a.value }}</code></td>
+<td>{{ a.asset_type }}</td>
+<td>{{ a.source }}</td>
+<td class="status-{{ a.metadata.get('status', '') }}">{{ a.metadata.get('status', '') }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
 
 </body>
 </html>

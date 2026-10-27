@@ -28,7 +28,7 @@ REPORT_DIR = DATA_DIR / "reports"
 @dataclass
 class ScanSettings:
     rate_limit: float = 5.0
-    max_requests: int = 5000
+    max_requests: int = 20000
     timeout: float = 10.0
     concurrency: int = 20
     proxy: str | None = None

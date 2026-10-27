@@ -153,7 +153,16 @@ class ScanEngine:
             print(f"{WHITE}Target: {target}  Mode: {mode}  Scan ID: {scan_id}{RESET}")
             print(f"{GREEN}Requests: {ctx.request_count}  Assets: {len(ctx.assets)}  Findings: {len(ctx.findings)}{RESET}")
             for a in ctx.assets:
-                print(f"  {BLUE}[ASSET]{RESET} {a}")
+                status = (a.metadata or {}).get("status") if hasattr(a, "metadata") else None
+                if status == 200:
+                    acolor = GREEN
+                elif status == 404:
+                    acolor = RED
+                elif status in (301, 302, 401, 403):
+                    acolor = YELLOW
+                else:
+                    acolor = BLUE
+                print(f"  {acolor}[ASSET]{RESET} {a}")
             for f in ctx.findings:
                 color = _sev_color(f.severity)
                 sev_str = f.severity.value if hasattr(f.severity, 'value') else f.severity

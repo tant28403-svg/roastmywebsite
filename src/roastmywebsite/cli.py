@@ -504,6 +504,8 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
         result = await engine.run(target, mode, settings, names, http_factory)
         progress.update(task, description="Done")
 
+    if result.metadata.get("request_count", 0) >= settings.max_requests:
+        console.print("[yellow]Warning: request budget exhausted; later modules may have been skipped. Increase max_requests if needed.[/yellow]")
     save_scan(result)
     console.print("\n[bold]Summary[/bold]")
     table = Table()
