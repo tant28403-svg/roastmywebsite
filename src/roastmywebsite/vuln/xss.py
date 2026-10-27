@@ -181,7 +181,7 @@ async def _probe_stored_xss(ctx, base: str) -> None:
 
 
 async def run(ctx) -> None:
-    base = f"https://{ctx.target}"
+    base = f"https://{ctx.target}".rstrip("/")
     try:
         resp = await ctx.http.get(base, timeout=ctx.settings.timeout)
         ctx.waf_type = detect_waf(resp.headers, resp.text)
