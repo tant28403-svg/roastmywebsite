@@ -451,15 +451,15 @@ async def _run_scan(target: str, mode: str, settings: ScanSettings, output: Path
         task = progress.add_task("Scanning...", total=None)
 
         def on_module_start(name) -> None:
-            console.print(f"[cyan]▶ Running:[/cyan] {name}")
-            progress.update(task, description=f"Running {name}...")
+            console.print(f"[cyan]▶ Running: {name}[/cyan]")
+            progress.update(task, description=f"[cyan]Running {name}...[/cyan]")
             progress.refresh()
 
         def on_module_done(name) -> None:
-            console.print(f"[green]✓ Completed:[/green] {name}")
+            console.print(f"[green]✓ Completed: {name}[/green]")
 
         def on_module_error(data) -> None:
-            console.print(f"[red]✗ Module '{data['module']}' failed:[/red] {data['error']}")
+            console.print(f"[red]✗ Module '{data['module']}' failed: {data['error']}[/red]")
 
         engine.event_bus.on("module_start", on_module_start)
         engine.event_bus.on("module_done", on_module_done)
