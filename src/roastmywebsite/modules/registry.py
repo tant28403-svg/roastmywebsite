@@ -67,7 +67,7 @@ ACTIVE_MODULES = SAFE_MODULES + ["injection", "xss", "ssrf", "idor"]
 
 AGGRESSIVE_MODULES = ACTIVE_MODULES + ["auth", "browser", "dns_oob", "dom_xss", "oob"]
 
-RECON_MODULES = ["dns", "subdomains", "ct", "wayback", "tech", "ports", "crawl", "js", "secrets"]
+RECON_MODULES = ["dns", "subdomains", "ct", "wayback", "tech", "ports", "crawl", "js", "secrets", "api"]
 
 
 def modules_for_mode(mode: str) -> list[str]:

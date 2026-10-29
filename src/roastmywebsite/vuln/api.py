@@ -21,7 +21,15 @@ COMMON_API_ENDPOINTS = [
     "/api/users", "/api/user", "/api/admin", "/api/login", "/api/auth",
     "/api/register", "/api/token", "/api/health", "/api/status",
     "/api/config", "/api/settings", "/api/version", "/api/info",
+    # Honeypot API endpoints
+    "/api/debug/env", "/api/env", "/api/secrets", "/api/keys",
+    "/api/debug", "/api/internal/config", "/api/v1/config",
+    # Static config files
+    "/config.js", "/api-config.json",
 ]
+
+# HTTP methods to test on API endpoints
+HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
 
 
 async def run(ctx) -> None:
@@ -52,17 +60,27 @@ async def run(ctx) -> None:
             return
         ctx.increment()
         resp = await ctx.http.get(f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
-        if resp.status_code in (200, 301, 302, 401, 403):
+        if resp.status_code in (200, 301, 302, 401, 403, 404, 400):
             ctx.add_asset(Asset(value=f"https://{ctx.target}{path}", asset_type="api_base", source="api", metadata={"status": resp.status_code}))
 
-    # Check common API endpoints
+    # Check common API endpoints with multiple HTTP methods
     for path in COMMON_API_ENDPOINTS:
-        if not ctx.can_request():
-            return
-        ctx.increment()
-        resp = await ctx.http.get(f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
-        if resp.status_code in (200, 301, 302, 401, 403):
-            ctx.add_asset(Asset(value=f"https://{ctx.target}{path}", asset_type="api_endpoint", source="api", metadata={"status": resp.status_code}))
+        for method in HTTP_METHODS:
+            if not ctx.can_request():
+                return
+            ctx.increment()
+            try:
+                resp = await ctx.http.request(method, f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
+                # Report all status codes for visibility
+                if resp.status_code < 500:  # Ignore 5xx server errors
+                    ctx.add_asset(Asset(
+                        value=f"https://{ctx.target}{path}",
+                        asset_type="api_endpoint",
+                        source="api",
+                        metadata={"status": resp.status_code, "method": method}
+                    ))
+            except Exception:
+                pass
 
     # GraphQL introspection
     if ctx.can_request():
