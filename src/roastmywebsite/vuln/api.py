@@ -31,6 +31,49 @@ COMMON_API_ENDPOINTS = [
 # HTTP methods to test on API endpoints
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
 
+# Content-Types that indicate a real API response
+API_CONTENT_TYPES = {
+    "application/json",
+    "application/xml",
+    "application/hal+json",
+    "application/vnd.api+json",
+    "text/xml",
+    "application/graphql",
+    "application/ld+json",
+    "application/x-yaml",
+    "application/yaml",
+}
+
+# Content-Types that indicate SPA fallback (serving index.html)
+SPA_FALLBACK_CONTENT_TYPES = {
+    "text/html",
+    "application/xhtml+xml",
+}
+
+# HTML indicators of SPA index.html fallback
+SPA_INDICATORS = [
+    "<!doctype html", "<html", "<head", "<body",
+    "<div id=\"root\">", "<div id=\"app\">", "<div id=\"__next\">",
+    "id=\"root\"", "id=\"app\"", "data-reactroot",
+    "<script src=\"/", "webpack", "__next_data__",
+    "react-dom", "vue.", "angular", "svelte",
+]
+
+
+def _is_spa_fallback(response) -> bool:
+    """Return True if response appears to be SPA index.html fallback."""
+    ct = (response.headers.get("content-type") or "").lower()
+    if any(spa_ct in ct for spa_ct in SPA_FALLBACK_CONTENT_TYPES):
+        body = (response.text or "")[:500].lower()
+        return any(indicator in body for indicator in SPA_INDICATORS)
+    return False
+
+
+def _is_real_api(response) -> bool:
+    """Return True if response looks like a real API."""
+    ct = (response.headers.get("content-type") or "").lower()
+    return any(api_ct in ct for api_ct in API_CONTENT_TYPES)
+
 
 async def run(ctx) -> None:
     # Check spec paths
@@ -60,8 +103,16 @@ async def run(ctx) -> None:
             return
         ctx.increment()
         resp = await ctx.http.get(f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
-        if resp.status_code in (200, 301, 302, 401, 403, 404, 400):
-            ctx.add_asset(Asset(value=f"https://{ctx.target}{path}", asset_type="api_base", source="api", metadata={"status": resp.status_code}))
+        if resp.status_code < 500:
+            is_spa = _is_spa_fallback(resp)
+            is_api = _is_real_api(resp)
+            if is_api or resp.status_code in (401, 403):
+                asset_type = "api_base"
+            elif is_spa:
+                asset_type = "spa_fallback"
+            else:
+                asset_type = "http_endpoint"
+            ctx.add_asset(Asset(value=f"https://{ctx.target}{path}", asset_type=asset_type, source="api", metadata={"status": resp.status_code}))
 
     # Check common API endpoints with multiple HTTP methods
     for path in COMMON_API_ENDPOINTS:
@@ -71,14 +122,27 @@ async def run(ctx) -> None:
             ctx.increment()
             try:
                 resp = await ctx.http.request(method, f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
-                # Report all status codes for visibility
-                if resp.status_code < 500:  # Ignore 5xx server errors
-                    ctx.add_asset(Asset(
-                        value=f"https://{ctx.target}{path}",
-                        asset_type="api_endpoint",
-                        source="api",
-                        metadata={"status": resp.status_code, "method": method}
-                    ))
+                if resp.status_code >= 500:
+                    continue
+                is_spa = _is_spa_fallback(resp)
+                is_api = _is_real_api(resp)
+                if is_api or resp.status_code in (401, 403):
+                    asset_type = "api_endpoint"
+                elif is_spa:
+                    asset_type = "spa_fallback"
+                else:
+                    asset_type = "http_endpoint"
+                ctx.add_asset(Asset(
+                    value=f"https://{ctx.target}{path}",
+                    asset_type=asset_type,
+                    source="api",
+                    metadata={
+                        "status": resp.status_code,
+                        "method": method,
+                        "content_type": resp.headers.get("content-type", ""),
+                        "is_spa_fallback": is_spa,
+                    }
+                ))
             except Exception:
                 pass
 
