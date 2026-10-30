@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import random
+import string
 
 from ..core.models import Asset, Finding, Severity
 
@@ -75,7 +77,50 @@ def _is_real_api(response) -> bool:
     return any(api_ct in ct for api_ct in API_CONTENT_TYPES)
 
 
+async def _get_soft_404_baseline(ctx, target: str) -> tuple[str, int]:
+    """Fetch a known-nonexistent path to detect soft 404 behavior."""
+    random_path = "/rmw-probe-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=12))
+    try:
+        resp = await ctx.http.get(f"https://{target}{random_path}", timeout=ctx.settings.timeout)
+        if resp.ok:
+            return (resp.text[:2000] if resp.text else "", len(resp.text or ""))
+    except Exception:
+        pass
+    return ("", 0)
+
+
+def _is_soft_404(response, baseline_text: str, baseline_len: int) -> bool:
+    """Return True if response appears to be a soft 404."""
+    if not baseline_text:
+        return False
+    
+    body = (response.text or "").lower()
+    body_len = len(body)
+    
+    # 1. Exact content match (first 2000 chars)
+    if body[:2000] == baseline_text:
+        return True
+    
+    # 2. Size similarity (within 100 bytes)
+    if abs(body_len - baseline_len) < 100:
+        return True
+    
+    # 3. Common 404 indicators in body
+    indicators = [
+        "404", "not found", "page not found", "does not exist",
+        "cannot be found", "no such page", "error 404",
+        "page doesn't exist", "nothing found", "no results"
+    ]
+    if any(ind in body for ind in indicators):
+        return True
+    
+    return False
+
+
 async def run(ctx) -> None:
+    # Get soft 404 baseline for this target
+    baseline_text, baseline_len = await _get_soft_404_baseline(ctx, ctx.target)
+    
     # Check spec paths
     for path in SPEC_PATHS:
         if not ctx.can_request():
@@ -83,6 +128,9 @@ async def run(ctx) -> None:
         ctx.increment()
         resp = await ctx.http.get(f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
         if resp.status_code < 500:
+            # Skip soft 404s
+            if _is_soft_404(resp, baseline_text, baseline_len):
+                continue
             is_spa = _is_spa_fallback(resp)
             is_api = _is_real_api(resp)
             if is_api:
@@ -114,6 +162,9 @@ async def run(ctx) -> None:
         ctx.increment()
         resp = await ctx.http.get(f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
         if resp.status_code < 500:
+            # Skip soft 404s
+            if _is_soft_404(resp, baseline_text, baseline_len):
+                continue
             is_spa = _is_spa_fallback(resp)
             is_api = _is_real_api(resp)
             if is_api or resp.status_code in (401, 403):
@@ -133,6 +184,9 @@ async def run(ctx) -> None:
             try:
                 resp = await ctx.http.request(method, f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
                 if resp.status_code >= 500:
+                    continue
+                # Skip soft 404s
+                if _is_soft_404(resp, baseline_text, baseline_len):
                     continue
                 is_spa = _is_spa_fallback(resp)
                 is_api = _is_real_api(resp)
