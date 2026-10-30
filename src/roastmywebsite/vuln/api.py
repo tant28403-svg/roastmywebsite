@@ -82,20 +82,30 @@ async def run(ctx) -> None:
             return
         ctx.increment()
         resp = await ctx.http.get(f"https://{ctx.target}{path}", timeout=ctx.settings.timeout)
-        if resp.status_code == 200:
-            ctx.add_asset(Asset(value=f"https://{ctx.target}{path}", asset_type="api_spec", source="api"))
-            try:
-                data = json.loads(resp.text)
-                paths = data.get("paths", {})
-                for p in list(paths.keys())[:50]:
-                    ctx.add_asset(Asset(value=p, asset_type="api_endpoint", source="api", metadata={"spec": path}))
-                # Extract version
-                info = data.get("info", {})
-                version = info.get("version")
-                if version:
-                    ctx.add_asset(Asset(value=version, asset_type="api_version", source="api"))
-            except Exception:
-                pass
+        if resp.status_code < 500:
+            is_spa = _is_spa_fallback(resp)
+            is_api = _is_real_api(resp)
+            if is_api:
+                # Real API spec - parse and extract endpoints
+                ctx.add_asset(Asset(value=f"https://{ctx.target}{path}", asset_type="api_spec", source="api"))
+                try:
+                    data = json.loads(resp.text)
+                    paths = data.get("paths", {})
+                    for p in list(paths.keys())[:50]:
+                        ctx.add_asset(Asset(value=p, asset_type="api_endpoint", source="api", metadata={"spec": path}))
+                    # Extract version
+                    info = data.get("info", {})
+                    version = info.get("version")
+                    if version:
+                        ctx.add_asset(Asset(value=version, asset_type="api_version", source="api"))
+                except Exception:
+                    pass
+            elif is_spa:
+                # SPA fallback - mark as such
+                ctx.add_asset(Asset(value=f"https://{ctx.target}{path}", asset_type="spa_fallback", source="api", metadata={"status": resp.status_code}))
+            else:
+                # Other (404, 400, etc.)
+                ctx.add_asset(Asset(value=f"https://{ctx.target}{path}", asset_type="http_endpoint", source="api", metadata={"status": resp.status_code}))
 
     # Check common API base paths
     for path in API_PATHS:
