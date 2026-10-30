@@ -73,10 +73,6 @@ class HttpResponse:
         return self.error is None and 200 <= self.status_code < 400
 
 
-class CircuitOpenError(Exception):
-    """Raised when too many consecutive requests are denied."""
-
-
 class HttpClient:
     def __init__(
         self,
@@ -150,7 +146,6 @@ class HttpClient:
         self._response_cache: dict[str, HttpResponse] = {}
         self._cache_enabled: bool = cache_enabled
         self._cache_max_size: int = 256
-        self._consecutive_denials: int = 0
 
     async def __aenter__(self) -> HttpClient:
         transport = httpx.AsyncHTTPTransport(retries=0)
@@ -398,12 +393,6 @@ class HttpClient:
                         verify=self.verify_tls,
                     )
                     if status > 0:
-                        if status in (403, 429, 407, 503):
-                            self._consecutive_denials += 1
-                            if self._consecutive_denials >= 20:
-                                raise CircuitOpenError("20 consecutive denials (proxy/WAF block)")
-                        else:
-                            self._consecutive_denials = 0
                         self._consecutive_blocks = 0 if status < 400 else self._consecutive_blocks
                         return HttpResponse(
                             url=effective_url,
@@ -454,12 +443,7 @@ class HttpClient:
                     else:
                         logger.debug("CAPTCHA detected in response.")
 
-                if response.status_code in (403, 429, 407, 503):
-                    self._consecutive_denials += 1
-                    if self._consecutive_denials >= 20:
-                        raise CircuitOpenError("20 consecutive denials (proxy/WAF block)")
-                else:
-                    self._consecutive_denials = 0
+                
 
                 result = HttpResponse(
                     url=str(response.url),
@@ -480,9 +464,6 @@ class HttpClient:
                 last_error = str(exc)
                 if attempt < self.max_retries:
                     await asyncio.sleep(0.2 * (attempt + 1))
-        self._consecutive_denials += 1
-        if self._consecutive_denials >= 20:
-            raise CircuitOpenError("20 consecutive denials (proxy/WAF block)")
         return HttpResponse(url=url, status_code=0, headers={}, text="", elapsed=0.0, error=last_error)
 
     async def get(self, url: str, **kwargs: Any) -> HttpResponse:

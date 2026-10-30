@@ -8,7 +8,6 @@ from datetime import datetime
 from typing import Any
 
 from .events import EventBus
-from .http import CircuitOpenError
 from .models import Asset, Finding, ScanResult
 from .scope import ScopeConfig
 
@@ -136,16 +135,9 @@ class ScanEngine:
             async def _run_module(name: str) -> None:
                 if name not in self.modules:
                     return
-                try:
-                    if getattr(ctx, "http", None) is not None:
-                        ctx.http._consecutive_denials = 0
-                except Exception:
-                    pass
                 self.event_bus.emit("module_start", name)
                 try:
                     await self.modules[name](ctx)
-                except CircuitOpenError:
-                    print(f"\\u23ed Skipping {name}: 20 consecutive denials (proxy/WAF block)")
                 except Exception as exc:
                     self.event_bus.emit("module_error", {"module": name, "error": str(exc)})
                 self.event_bus.emit("module_done", name)
